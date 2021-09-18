@@ -2,6 +2,7 @@ use disassembler::Instruction;
 use std::{convert::TryFrom, fs};
 
 mod disassembler;
+mod emulator;
 
 fn main() {
     let mut buf = vec![];
@@ -42,17 +43,20 @@ fn main() {
                 let mut next_bytes = vec![];
                 for _i in 1..instruction.size() {
                     let byte = iter.next().expect("Unterminated instruction");
-                    next_bytes.push(byte);
+                    next_bytes.push(*byte);
                     counter += 1;
                 }
 
                 let mut next_bytes_iter = next_bytes.iter();
-                if next_bytes.len() == 1 {
-                    let adr_str = format!("#${:02x}", next_bytes_iter.next().unwrap());
-                    output_line = format!("{}    {}", output_line, adr_str);
-                } else if next_bytes.len() == 2 {
-                    let mut adr_str = format!("{:02x}", next_bytes_iter.next().unwrap());
-                    adr_str = format!("${:02x}{}", next_bytes_iter.next().unwrap(), adr_str);
+                if let Some(next) = next_bytes_iter.next() {
+                    let mut adr_str = format!("{:02x}", next);
+
+                    if let Some(next) = next_bytes_iter.next() {
+                        adr_str = format!("${:02x}{}", next, adr_str);
+                    } else {
+                        adr_str = format!("#${}", adr_str);
+                    }
+
                     output_line = format!("{}    {}", output_line, adr_str);
                 }
             }
