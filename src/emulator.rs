@@ -57,52 +57,51 @@ impl State8080 {
         }
     }
 
-    pub fn run(self) {
-        let mut output = String::new();
+    fn evaluating_op(self) -> Self {
+        let mut state = self;
 
-        let mut iter = self.memory.iter();
-        let mut counter: usize = 0;
-        while let Some(byte) = iter.next() {
-            let hex_counter = format!("{:04x}", counter);
-            let hex_byte = format!("{:#04x}", byte);
+        let op_code = state.memory[state.pc as usize];
 
-            let mut output_line = format!("{}    {}", hex_counter, hex_byte);
+        let mut output_line = format!("{:04x}    {:#04x}", state.pc, op_code);
 
-            counter += 1;
+        state.pc += 1;
 
-            let instruction = Instruction::try_from(*byte);
-            match instruction {
-                Ok(instruction) => {
-                    output_line = format!("{}    {}", output_line, instruction.to_string());
+        match Instruction::try_from(op_code) {
+            Ok(instruction) => {
+                output_line = format!("{}    {}", output_line, instruction.to_string());
 
-                    let mut next_bytes = vec![];
-                    for _i in 1..instruction.size() {
-                        let byte = iter.next().expect("Unterminated instruction");
-                        next_bytes.push(*byte);
-                        counter += 1;
-                    }
-
-                    let mut next_bytes_iter = next_bytes.iter();
-                    if let Some(next) = next_bytes_iter.next() {
-                        let mut adr_str = format!("{:02x}", next);
-
-                        if let Some(next) = next_bytes_iter.next() {
-                            adr_str = format!("${:02x}{}", next, adr_str);
-                        } else {
-                            adr_str = format!("#${}", adr_str);
-                        }
-
-                        output_line = format!("{}    {}", output_line, adr_str);
-                    }
+                let mut next_bytes = Vec::new();
+                for _i in 1..instruction.size() {
+                    let byte = state.memory[state.pc as usize];
+                    next_bytes.push(byte);
+                    state.pc += 1;
                 }
-                Err(()) => (),
-            }
 
-            output_line = format!("{}\n", output_line);
-            output.push_str(&output_line);
+                let mut next_bytes_iter = next_bytes.iter();
+                if let Some(next) = next_bytes_iter.next() {
+                    let mut adr_str = format!("{:02x}", next);
+
+                    if let Some(next) = next_bytes_iter.next() {
+                        adr_str = format!("${:02x}{}", next, adr_str);
+                    } else {
+                        adr_str = format!("#${}", adr_str);
+                    }
+
+                    output_line = format!("{}    {}", output_line, adr_str);
+                }
+                println!("{}", output_line);
+            }
+            Err(_) => println!("Not an instruction: {:#04x}", op_code),
         }
 
-        std::fs::write("/Users/prezi/Developer/emu-8080/invaders.txt", output)
-            .expect("Failed to write output file");
+        state
+    }
+
+    pub fn run(self) {
+        let mut state = self;
+
+        while true {
+            state = state.evaluating_op();
+        }
     }
 }
