@@ -11,6 +11,7 @@ bitflags! {
     }
 }
 
+#[derive(Default)]
 pub struct State8080 {
     pub a: u8,
     pub b: u8,
@@ -24,4 +25,37 @@ pub struct State8080 {
     pub memory: Vec<u8>,
     pub cc: ConditionCodes,
     pub int_enable: u8,
+}
+
+impl Default for ConditionCodes {
+    fn default() -> Self {
+        Self { bits: 0 }
+    }
+}
+
+impl State8080 {
+    pub fn new() -> Self {
+        State8080 {
+            memory: vec![0; 0x10000],
+            ..Default::default()
+        }
+    }
+
+    pub fn loading_buffer_into_memory_at(self, buffer: Vec<u8>, index: u16) -> Self {
+        let range_start = index as usize;
+        let range_end = range_start + buffer.len();
+        let mut new_memory = self.memory;
+        new_memory.splice(range_start..range_end, buffer);
+
+        State8080 {
+            memory: new_memory,
+            ..self
+        }
+    }
+
+    pub fn run(self) {
+        while true {
+            
+        }
+    }
 }
