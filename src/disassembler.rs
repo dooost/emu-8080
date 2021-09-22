@@ -21,7 +21,7 @@ macro_rules! enum_try_from_u8 {
 }
 
 enum_try_from_u8! {
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     #[repr(u8)]
     pub enum Instruction {
         Nop = 0x00,
