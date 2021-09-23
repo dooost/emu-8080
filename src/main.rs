@@ -1,19 +1,16 @@
-use std::{convert::TryFrom, fs};
-
-use disassembler::Instruction;
 use emulator::State8080;
 
 mod disassembler;
 mod emulator;
 
 fn main() {
-    let mut buf_h = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.h")
+    let buf_h = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.h")
         .expect("Failed to read file");
-    let mut buf_g = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.g")
+    let buf_g = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.g")
         .expect("Failed to read file");
-    let mut buf_f = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.f")
+    let buf_f = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.f")
         .expect("Failed to read file");
-    let mut buf_e = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.e")
+    let buf_e = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.e")
         .expect("Failed to read file");
 
     let state = State8080::new()

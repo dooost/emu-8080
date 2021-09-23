@@ -410,7 +410,7 @@ impl State8080 {
     pub fn run(self) {
         let mut state = self;
 
-        while true {
+        loop {
             state = state.evaluating_next();
         }
     }
