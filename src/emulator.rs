@@ -115,15 +115,15 @@ impl State8080 {
 
         let mut next_bytes_iter = next_bytes.iter();
         if let Some(next) = next_bytes_iter.next() {
-            let mut adr_str = format!("{:02x}", next);
+            let mut addr_str = format!("{:02x}", next);
 
             if let Some(next) = next_bytes_iter.next() {
-                adr_str = format!("${:02x}{}", next, adr_str);
+                addr_str = format!("${:02x}{}", next, addr_str);
             } else {
-                adr_str = format!("#${}", adr_str);
+                addr_str = format!("#${}", addr_str);
             }
 
-            output_line = format!("{}    {}", output_line, adr_str);
+            output_line = format!("{}    {}", output_line, addr_str);
         }
         println!("{}", output_line);
     }
@@ -398,22 +398,34 @@ impl State8080 {
             }
             Instruction::Rst0 => (),
             Instruction::Rz => (),
-            Instruction::Ret => (),
+
+            // 0xC9
+            Instruction::Ret => {
+                let low = state.memory[state.sp as usize];
+                let high = state.memory[state.sp as usize + 1];
+                state.sp += 2;
+                state.pc = BytePair { low, high }.into();
+            }
+
             Instruction::Jz => (),
             Instruction::Cz => (),
 
+            // 0xCD
             Instruction::Call => {
                 let (new_state, pair) = state.reading_next_pair();
                 state = new_state;
 
-                let return_adr = state.pc;
-                let return_pair = BytePair::from(return_adr);
+                let return_addr = state.pc;
+                let return_pair = BytePair::from(return_addr);
 
-                let high_mem_adr = (Wrapping(state.sp) - Wrapping(1)).0;
-                let low_mem_adr = (Wrapping(state.sp) - Wrapping(2)).0;
-                state.memory[high_mem_adr as usize] = return_pair.high;
-                state.memory[low_mem_adr as usize] = return_pair.low;
-                state.sp = low_mem_adr;
+                // Use Wrapping since sp starts at 0 and has to wrap on first decrement
+                // Planning on implementing a custom wrapper for Wrapping to make dealing with this
+                // field easier, but for now not many instructions will need this hopefully.
+                let high_mem_addr = (Wrapping(state.sp) - Wrapping(1)).0;
+                let low_mem_addr = (Wrapping(state.sp) - Wrapping(2)).0;
+                state.memory[high_mem_addr as usize] = return_pair.high;
+                state.memory[low_mem_addr as usize] = return_pair.low;
+                state.sp = low_mem_addr;
 
                 state.pc = pair.into();
             }
