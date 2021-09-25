@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::num::Wrapping;
 
 use bitflags::bitflags;
 
@@ -42,9 +43,18 @@ impl Default for ConditionCodes {
     }
 }
 
-impl BytePair {
-    fn to_address(self) -> u16 {
-        ((self.high as u16) << 8) | self.low as u16
+impl From<u16> for BytePair {
+    fn from(val: u16) -> BytePair {
+        let high = (val >> 8) as u8;
+        let low = val as u8;
+
+        BytePair { high, low }
+    }
+}
+
+impl From<BytePair> for u16 {
+    fn from(pair: BytePair) -> u16 {
+        ((pair.high as u16) << 8) | pair.low as u16
     }
 }
 
@@ -280,11 +290,11 @@ impl State8080 {
             Instruction::AddL => (),
             // 0x86
             Instruction::AddM => {
-                let address = BytePair {
+                let address: u16 = BytePair {
                     low: state.l,
                     high: state.h,
                 }
-                .to_address();
+                .into();
 
                 let res_precise = state.a as u16 + state.memory[address as usize] as u16;
                 let res = (res_precise & 0xff) as u8;
@@ -354,8 +364,21 @@ impl State8080 {
             Instruction::CmpA => (),
             Instruction::Rnz => (),
             Instruction::PopB => (),
-            Instruction::Jnz => (),
-            Instruction::Jmp => (),
+            // 0xC2
+            Instruction::Jnz => {
+                let (new_state, pair) = state.reading_next_pair();
+                state = new_state;
+
+                if state.cc.contains(ConditionCodes::Z) {
+                    state.pc = pair.into();
+                }
+            }
+            // 0xC3
+            Instruction::Jmp => {
+                let (new_state, pair) = state.reading_next_pair();
+                state = new_state;
+                state.pc = pair.into();
+            }
             Instruction::Cnz => (),
             Instruction::PushB => (),
 
@@ -378,7 +401,22 @@ impl State8080 {
             Instruction::Ret => (),
             Instruction::Jz => (),
             Instruction::Cz => (),
-            Instruction::Call => (),
+
+            Instruction::Call => {
+                let (new_state, pair) = state.reading_next_pair();
+                state = new_state;
+
+                let return_adr = state.pc;
+                let return_pair = BytePair::from(return_adr);
+
+                let high_mem_adr = (Wrapping(state.sp) - Wrapping(1)).0;
+                let low_mem_adr = (Wrapping(state.sp) - Wrapping(2)).0;
+                state.memory[high_mem_adr as usize] = return_pair.high;
+                state.memory[low_mem_adr as usize] = return_pair.low;
+                state.sp = low_mem_adr;
+
+                state.pc = pair.into();
+            }
             Instruction::Aci => (),
             Instruction::Rst1 => (),
             Instruction::Rnc => (),
