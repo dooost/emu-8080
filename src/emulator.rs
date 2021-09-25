@@ -97,6 +97,20 @@ impl State8080 {
         (state, pair)
     }
 
+    fn setting_logic_flags_a(self) -> Self {
+        let mut state = self;
+
+        // Based on data book AC and CY should be cleared
+        state.cc.remove(ConditionCodes::CY);
+        state.cc.remove(ConditionCodes::AC);
+
+        state.cc.set(ConditionCodes::Z, state.a == 0);
+        state.cc.set(ConditionCodes::S, (state.a & 0x80) == 0x80);
+        state.cc.set(ConditionCodes::P, parity(state.a));
+
+        state
+    }
+
     fn log_instruction(&self, instruction: Instruction) {
         // pc is incremented after reading it, we should rewind back here for logging
         let instruction_pc = self.pc - 1;
@@ -193,7 +207,11 @@ impl State8080 {
             Instruction::InrL => (),
             Instruction::DcrL => (),
             Instruction::MviL => (),
-            Instruction::Cma => (),
+
+            // 0x2F
+            Instruction::Cma => {
+                state.a = !state.a;
+            }
             Instruction::LxiSp => (),
             Instruction::Sta => (),
             Instruction::InxSp => (),
@@ -451,7 +469,14 @@ impl State8080 {
             Instruction::Xthl => (),
             Instruction::Cpo => (),
             Instruction::PushH => (),
-            Instruction::Ani => (),
+            // 0xE6
+            Instruction::Ani => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+
+                state.a = state.a & byte;
+                state = state.setting_logic_flags_a();
+            }
             Instruction::Rst4 => (),
             Instruction::Rpe => (),
             Instruction::Pchl => (),
