@@ -15,6 +15,11 @@ bitflags! {
     }
 }
 
+struct BytePair {
+    pub low: u8,
+    pub high: u8,
+}
+
 #[derive(Default)]
 pub struct State8080 {
     pub a: u8,
@@ -37,6 +42,12 @@ impl Default for ConditionCodes {
     }
 }
 
+impl BytePair {
+    fn to_address(self) -> u16 {
+        ((self.high as u16) << 8) | self.low as u16
+    }
+}
+
 impl State8080 {
     pub fn new() -> Self {
         State8080 {
@@ -55,6 +66,25 @@ impl State8080 {
             memory: new_memory,
             ..self
         }
+    }
+
+    fn reading_next_byte(self) -> (Self, u8) {
+        let mut state = self;
+        let byte = state.memory[state.pc as usize];
+        state.pc += 1;
+
+        (state, byte)
+    }
+
+    fn reading_next_pair(self) -> (Self, BytePair) {
+        let mut state = self;
+        let pair = BytePair {
+            low: state.memory[state.pc as usize],
+            high: state.memory[state.pc as usize + 1],
+        };
+        state.pc += 2;
+
+        (state, pair)
     }
 
     fn log_instruction(&self, instruction: Instruction) {
@@ -95,9 +125,11 @@ impl State8080 {
         match instruction {
             Instruction::Nop => (),
             Instruction::LxiB => {
-                state.c = state.memory[state.pc as usize];
-                state.c = state.memory[state.pc as usize + 1];
-                state.pc += 2;
+                let (new_state, byte_pair) = state.reading_next_pair();
+
+                state = new_state;
+                state.b = byte_pair.high;
+                state.c = byte_pair.low
             }
 
             Instruction::StaxB => (),
@@ -248,8 +280,13 @@ impl State8080 {
             Instruction::AddL => (),
             // 0x86
             Instruction::AddM => {
-                let index = ((state.h as u16) << 8) | state.l as u16;
-                let res_precise = state.a as u16 + state.memory[index as usize] as u16;
+                let address = BytePair {
+                    low: state.l,
+                    high: state.h,
+                }
+                .to_address();
+
+                let res_precise = state.a as u16 + state.memory[address as usize] as u16;
                 let res = (res_precise & 0xff) as u8;
 
                 state.a = res;
@@ -324,10 +361,11 @@ impl State8080 {
 
             // 0xC6
             Instruction::Adi => {
-                let res_precise = state.a as u16 + state.memory[state.pc as usize] as u16;
-                let res = (res_precise & 0xff) as u8;
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
 
-                state.pc += 1;
+                let res_precise = state.a as u16 + byte as u16;
+                let res = (res_precise & 0xff) as u8;
 
                 state.a = res;
                 state.cc.set(ConditionCodes::Z, res == 0);
@@ -395,9 +433,7 @@ impl State8080 {
     }
 
     fn evaluating_next(self) -> Self {
-        let mut state = self;
-        let op_code = state.memory[state.pc as usize];
-        state.pc += 1;
+        let (mut state, op_code) = self.reading_next_byte();
 
         match Instruction::try_from(op_code) {
             Ok(instruction) => state = state.evaluating_instruction(instruction),
