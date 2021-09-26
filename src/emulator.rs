@@ -393,7 +393,12 @@ impl State8080 {
             Instruction::CmpM => (),
             Instruction::CmpA => (),
             Instruction::Rnz => (),
-            Instruction::PopB => (),
+            // 0xC1
+            Instruction::PopB => {
+                state.b = state.memory[state.sp as usize];
+                state.c = state.memory[state.sp.wrapping_add(1) as usize];
+                state.sp = state.sp.wrapping_add(2);
+            }
             // 0xC2
             Instruction::Jnz => {
                 let (new_state, pair) = state.reading_next_pair();
@@ -410,7 +415,12 @@ impl State8080 {
                 state.pc = pair.into();
             }
             Instruction::Cnz => (),
-            Instruction::PushB => (),
+            // 0xC5
+            Instruction::PushB => {
+                state.memory[state.sp.wrapping_sub(1) as usize] = state.b;
+                state.memory[state.sp.wrapping_sub(2) as usize] = state.c;
+                state.sp = state.sp.wrapping_sub(2);
+            }
 
             // 0xC6
             Instruction::Adi => {
@@ -432,8 +442,8 @@ impl State8080 {
             // 0xC9
             Instruction::Ret => {
                 let low = state.memory[state.sp as usize];
-                let high = state.memory[state.sp as usize + 1];
-                state.sp += 2;
+                let high = state.memory[state.sp.wrapping_add(1) as usize];
+                state.sp = state.sp.wrapping_add(2);
                 state.pc = BytePair { low, high }.into();
             }
 
