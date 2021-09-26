@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::num::Wrapping;
 
 use bitflags::bitflags;
 
@@ -34,7 +33,7 @@ pub struct State8080 {
     pub pc: u16,
     pub memory: Vec<u8>,
     pub cc: ConditionCodes,
-    pub int_enable: u8,
+    pub interrupt_enabled: bool,
 }
 
 impl Default for ConditionCodes {
@@ -449,11 +448,8 @@ impl State8080 {
                 let return_addr = state.pc;
                 let return_pair = BytePair::from(return_addr);
 
-                // Use Wrapping since sp starts at 0 and has to wrap on first decrement
-                // Planning on implementing a custom wrapper for Wrapping to make dealing with this
-                // field easier, but for now not many instructions will need this hopefully.
-                let high_mem_addr = (Wrapping(state.sp) - Wrapping(1)).0;
-                let low_mem_addr = (Wrapping(state.sp) - Wrapping(2)).0;
+                let high_mem_addr = state.sp.wrapping_sub(1);
+                let low_mem_addr = state.sp.wrapping_sub(2);
                 state.memory[high_mem_addr as usize] = return_pair.high;
                 state.memory[low_mem_addr as usize] = return_pair.low;
                 state.sp = low_mem_addr;
@@ -512,7 +508,10 @@ impl State8080 {
             Instruction::Rp => (),
             Instruction::PopPsw => (),
             Instruction::Jp => (),
-            Instruction::Di => (),
+            // 0xF3
+            Instruction::Di => {
+                state.interrupt_enabled = false;
+            }
             Instruction::Cp => (),
             Instruction::PushPsw => (),
             Instruction::Ori => (),
@@ -520,7 +519,10 @@ impl State8080 {
             Instruction::Rm => (),
             Instruction::Sphl => (),
             Instruction::Jm => (),
-            Instruction::Ei => (),
+            // 0xFB
+            Instruction::Ei => {
+                state.interrupt_enabled = true;
+            }
             Instruction::Cm => (),
             Instruction::Cpi => {
                 let (new_state, byte) = state.reading_next_byte();
