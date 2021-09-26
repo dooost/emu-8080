@@ -465,14 +465,25 @@ impl State8080 {
             Instruction::Rnc => (),
             Instruction::PopD => (),
             Instruction::Jnc => (),
-            Instruction::Out => (),
+
+            // 0xD3
+            Instruction::Out => {
+                let (new_state, _b) = state.reading_next_byte();
+                state = new_state;
+            }
             Instruction::Cnc => (),
             Instruction::PushD => (),
             Instruction::Sui => (),
             Instruction::Rst2 => (),
             Instruction::Rc => (),
             Instruction::Jc => (),
-            Instruction::In => (),
+
+            // 0xDB
+            Instruction::In => {
+                let (new_state, _b) = state.reading_next_byte();
+                state = new_state;
+            }
+
             Instruction::Cc => (),
             Instruction::Sbi => (),
             Instruction::Rst3 => (),
