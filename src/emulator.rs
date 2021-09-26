@@ -168,7 +168,13 @@ impl State8080 {
             Instruction::InrC => (),
             Instruction::DcrC => (),
             Instruction::MviC => (),
-            Instruction::Rrc => (),
+            // 0x0F
+            Instruction::Rrc => {
+                let x = state.a;
+                state.a = ((x & 1) << 7) | (x >> 1);
+                state.cc.set(ConditionCodes::CY, (x & 1) == 1);
+            }
+
             Instruction::LxiD => (),
             Instruction::StaxD => (),
             // 0x13
@@ -188,7 +194,14 @@ impl State8080 {
             Instruction::InrE => (),
             Instruction::DcrE => (),
             Instruction::MviE => (),
-            Instruction::Rar => (),
+
+            // 0x1F
+            Instruction::Rar => {
+                let x = state.a;
+                let carry_u8 = state.cc.contains(ConditionCodes::CY) as u8;
+                state.a = ((carry_u8 & 1) << 7) | (x >> 1);
+                state.cc.set(ConditionCodes::CY, (x & 1) == 1);
+            }
             Instruction::LxiH => (),
             Instruction::Shld => (),
             Instruction::InxH => {
@@ -498,7 +511,17 @@ impl State8080 {
             Instruction::Jm => (),
             Instruction::Ei => (),
             Instruction::Cm => (),
-            Instruction::Cpi => (),
+            Instruction::Cpi => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+
+                let res = state.a - byte;
+
+                state.cc.set(ConditionCodes::Z, res == 0);
+                state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
+                state.cc.set(ConditionCodes::P, parity(res));
+                state.cc.set(ConditionCodes::CY, state.a < byte);
+            }
             Instruction::Rst7 => (),
         }
 
