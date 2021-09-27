@@ -147,6 +147,7 @@ impl State8080 {
         let mut state = self;
         match instruction {
             Instruction::Nop => (),
+            // 0x01
             Instruction::LxiB => {
                 let (new_state, byte_pair) = state.reading_next_pair();
 
@@ -183,8 +184,14 @@ impl State8080 {
                 state.a = ((x & 1) << 7) | (x >> 1);
                 state.cc.set(ConditionCodes::CY, (x & 1) == 1);
             }
+            // 0x11
+            Instruction::LxiD => {
+                let (new_state, byte_pair) = state.reading_next_pair();
 
-            Instruction::LxiD => (),
+                state = new_state;
+                state.d = byte_pair.high;
+                state.e = byte_pair.low
+            }
             Instruction::StaxD => (),
             // 0x13
             Instruction::InxD => {
@@ -211,8 +218,16 @@ impl State8080 {
                 state.a = ((carry_u8 & 1) << 7) | (x >> 1);
                 state.cc.set(ConditionCodes::CY, (x & 1) == 1);
             }
-            Instruction::LxiH => (),
+            // 0x21
+            Instruction::LxiH => {
+                let (new_state, byte_pair) = state.reading_next_pair();
+
+                state = new_state;
+                state.h = byte_pair.high;
+                state.l = byte_pair.low
+            }
             Instruction::Shld => (),
+            // 0x23
             Instruction::InxH => {
                 state.l += 1;
                 if state.l == 0 {
