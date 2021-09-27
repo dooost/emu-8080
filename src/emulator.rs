@@ -415,6 +415,7 @@ impl State8080 {
                 state.pc = pair.into();
             }
             Instruction::Cnz => (),
+
             // 0xC5
             Instruction::PushB => {
                 state.memory[state.sp.wrapping_sub(1) as usize] = state.b;
@@ -469,7 +470,12 @@ impl State8080 {
             Instruction::Aci => (),
             Instruction::Rst1 => (),
             Instruction::Rnc => (),
-            Instruction::PopD => (),
+            // 0xD1
+            Instruction::PopD => {
+                state.e = state.memory[state.sp as usize];
+                state.d = state.memory[state.sp.wrapping_add(1) as usize];
+                state.sp = state.sp.wrapping_add(2);
+            }
             Instruction::Jnc => (),
 
             // 0xD3
@@ -478,7 +484,13 @@ impl State8080 {
                 state = new_state;
             }
             Instruction::Cnc => (),
-            Instruction::PushD => (),
+            // 0xD5
+            Instruction::PushD => {
+                state.memory[state.sp.wrapping_sub(1) as usize] = state.d;
+                state.memory[state.sp.wrapping_sub(2) as usize] = state.e;
+                state.sp = state.sp.wrapping_sub(2);
+            }
+
             Instruction::Sui => (),
             Instruction::Rst2 => (),
             Instruction::Rc => (),
@@ -494,11 +506,22 @@ impl State8080 {
             Instruction::Sbi => (),
             Instruction::Rst3 => (),
             Instruction::Rpo => (),
-            Instruction::PopH => (),
+
+            // 0xE1
+            Instruction::PopH => {
+                state.l = state.memory[state.sp as usize];
+                state.h = state.memory[state.sp.wrapping_add(1) as usize];
+                state.sp = state.sp.wrapping_add(2);
+            }
             Instruction::Jpo => (),
             Instruction::Xthl => (),
             Instruction::Cpo => (),
-            Instruction::PushH => (),
+            // 0xE5
+            Instruction::PushH => {
+                state.memory[state.sp.wrapping_sub(1) as usize] = state.h;
+                state.memory[state.sp.wrapping_sub(2) as usize] = state.l;
+                state.sp = state.sp.wrapping_sub(2);
+            }
             // 0xE6
             Instruction::Ani => {
                 let (new_state, byte) = state.reading_next_byte();
