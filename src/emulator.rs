@@ -228,7 +228,19 @@ impl State8080 {
                 state.h = byte;
             }
             Instruction::Daa => (),
-            Instruction::DadH => (),
+            // 0x29
+            Instruction::DadH => {
+                let hl: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                let res = hl as u32 + hl as u32;
+                let res_pair = BytePair::from(res as u16);
+                state.h = res_pair.high;
+                state.l = res_pair.low;
+                state.cc.set(ConditionCodes::CY, (res & 0xffff0000) != 0);
+            }
             Instruction::Lhld => (),
             Instruction::DcxH => (),
             Instruction::InrL => (),
@@ -239,8 +251,19 @@ impl State8080 {
             Instruction::Cma => {
                 state.a = !state.a;
             }
-            Instruction::LxiSp => (),
-            Instruction::Sta => (),
+            // 0x31
+            Instruction::LxiSp => {
+                let (new_state, pair) = state.reading_next_pair();
+                state = new_state;
+                state.sp = pair.into();
+            }
+            // 0x32
+            Instruction::Sta => {
+                let (new_state, pair) = state.reading_next_pair();
+                let offset: u16 = pair.into();
+                state = new_state;
+                state.memory[offset as usize] = state.a;
+            }
             Instruction::InxSp => (),
             Instruction::InrM => (),
             Instruction::DcrM => (),
@@ -258,7 +281,13 @@ impl State8080 {
             }
             Instruction::Stc => (),
             Instruction::DadSp => (),
-            Instruction::Lda => (),
+            // 0x3A
+            Instruction::Lda => {
+                let (new_state, pair) = state.reading_next_pair();
+                let offset: u16 = pair.into();
+                state = new_state;
+                state.a = state.memory[offset as usize];
+            }
             Instruction::DcxSp => (),
             Instruction::InrA => (),
             Instruction::DcrA => (),
