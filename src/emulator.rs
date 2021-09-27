@@ -155,11 +155,17 @@ impl State8080 {
                 state.b = byte_pair.high;
                 state.c = byte_pair.low
             }
-
             Instruction::StaxB => (),
             Instruction::InxB => (),
             Instruction::InrB => (),
-            Instruction::DcrB => (),
+            // 0x05
+            Instruction::DcrB => {
+                let res = state.b - 1;
+                state.cc.set(ConditionCodes::Z, res == 0);
+                state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
+                state.cc.set(ConditionCodes::P, parity(res));
+                state.b = res;
+            }
             // 0x06
             Instruction::MviB => {
                 let (new_state, byte) = state.reading_next_byte();
@@ -167,11 +173,35 @@ impl State8080 {
                 state.b = byte;
             }
             Instruction::Rlc => (),
-            Instruction::DadB => (),
+            // 0x09
+            Instruction::DadB => {
+                let hl: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                let bc: u16 = BytePair {
+                    high: state.b,
+                    low: state.c,
+                }
+                .into();
+                let res = hl as u32 + bc as u32;
+                let res_pair = BytePair::from(res as u16);
+                state.h = res_pair.high;
+                state.l = res_pair.low;
+                state.cc.set(ConditionCodes::CY, (res & 0xffff0000) != 0);
+            }
             Instruction::LdaxB => (),
             Instruction::DcxB => (),
             Instruction::InrC => (),
-            Instruction::DcrC => (),
+            // 0x0D
+            Instruction::DcrC => {
+                let res = state.c - 1;
+                state.cc.set(ConditionCodes::Z, res == 0);
+                state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
+                state.cc.set(ConditionCodes::P, parity(res));
+                state.c = res;
+            }
             // 0x0E
             Instruction::MviC => {
                 let (new_state, byte) = state.reading_next_byte();
@@ -204,13 +234,37 @@ impl State8080 {
             Instruction::DcrD => (),
             Instruction::MviD => (),
             Instruction::Ral => (),
-            Instruction::DadD => (),
-            Instruction::LdaxD => (),
+            // 0x19
+            Instruction::DadD => {
+                let hl: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                let de: u16 = BytePair {
+                    high: state.d,
+                    low: state.e,
+                }
+                .into();
+                let res = hl as u32 + de as u32;
+                let res_pair = BytePair::from(res as u16);
+                state.h = res_pair.high;
+                state.l = res_pair.low;
+                state.cc.set(ConditionCodes::CY, (res & 0xffff0000) != 0);
+            }
+            //0x1A
+            Instruction::LdaxD => {
+                let offset: u16 = BytePair {
+                    high: state.d,
+                    low: state.e,
+                }
+                .into();
+                state.a = state.memory[offset as usize];
+            }
             Instruction::DcxD => (),
             Instruction::InrE => (),
             Instruction::DcrE => (),
             Instruction::MviE => (),
-
             // 0x1F
             Instruction::Rar => {
                 let x = state.a;
@@ -261,7 +315,6 @@ impl State8080 {
             Instruction::InrL => (),
             Instruction::DcrL => (),
             Instruction::MviL => (),
-
             // 0x2F
             Instruction::Cma => {
                 state.a = !state.a;
@@ -550,14 +603,12 @@ impl State8080 {
                 state.pc = pair.into();
             }
             Instruction::Cnz => (),
-
             // 0xC5
             Instruction::PushB => {
                 state.memory[state.sp.wrapping_sub(1) as usize] = state.b;
                 state.memory[state.sp.wrapping_sub(2) as usize] = state.c;
                 state.sp = state.sp.wrapping_sub(2);
             }
-
             // 0xC6
             Instruction::Adi => {
                 let (new_state, byte) = state.reading_next_byte();
@@ -574,7 +625,6 @@ impl State8080 {
             }
             Instruction::Rst0 => (),
             Instruction::Rz => (),
-
             // 0xC9
             Instruction::Ret => {
                 let low = state.memory[state.sp as usize];
@@ -582,10 +632,8 @@ impl State8080 {
                 state.sp = state.sp.wrapping_add(2);
                 state.pc = BytePair { low, high }.into();
             }
-
             Instruction::Jz => (),
             Instruction::Cz => (),
-
             // 0xCD
             Instruction::Call => {
                 let (new_state, pair) = state.reading_next_pair();
@@ -612,7 +660,6 @@ impl State8080 {
                 state.sp = state.sp.wrapping_add(2);
             }
             Instruction::Jnc => (),
-
             // 0xD3
             Instruction::Out => {
                 let (new_state, _b) = state.reading_next_byte();
@@ -625,23 +672,19 @@ impl State8080 {
                 state.memory[state.sp.wrapping_sub(2) as usize] = state.e;
                 state.sp = state.sp.wrapping_sub(2);
             }
-
             Instruction::Sui => (),
             Instruction::Rst2 => (),
             Instruction::Rc => (),
             Instruction::Jc => (),
-
             // 0xDB
             Instruction::In => {
                 let (new_state, _b) = state.reading_next_byte();
                 state = new_state;
             }
-
             Instruction::Cc => (),
             Instruction::Sbi => (),
             Instruction::Rst3 => (),
             Instruction::Rpo => (),
-
             // 0xE1
             Instruction::PopH => {
                 state.l = state.memory[state.sp as usize];
@@ -682,7 +725,6 @@ impl State8080 {
             Instruction::Xri => (),
             Instruction::Rst5 => (),
             Instruction::Rp => (),
-
             // 0xF1
             Instruction::PopPsw => {
                 state.a = state.memory[state.sp.wrapping_add(1) as usize];
