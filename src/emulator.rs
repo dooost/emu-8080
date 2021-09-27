@@ -160,7 +160,7 @@ impl State8080 {
             Instruction::InrB => (),
             // 0x05
             Instruction::DcrB => {
-                let res = state.b - 1;
+                let res = state.b.wrapping_sub(1);
                 state.cc.set(ConditionCodes::Z, res == 0);
                 state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
                 state.cc.set(ConditionCodes::P, parity(res));
@@ -196,7 +196,7 @@ impl State8080 {
             Instruction::InrC => (),
             // 0x0D
             Instruction::DcrC => {
-                let res = state.c - 1;
+                let res = state.c.wrapping_sub(1);
                 state.cc.set(ConditionCodes::Z, res == 0);
                 state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
                 state.cc.set(ConditionCodes::P, parity(res));
@@ -225,9 +225,9 @@ impl State8080 {
             Instruction::StaxD => (),
             // 0x13
             Instruction::InxD => {
-                state.e += 1;
+                state.e = state.e.wrapping_add(1);
                 if state.e == 0 {
-                    state.d += 1;
+                    state.d = state.d.wrapping_add(1);
                 }
             }
             Instruction::InrD => (),
@@ -283,9 +283,9 @@ impl State8080 {
             Instruction::Shld => (),
             // 0x23
             Instruction::InxH => {
-                state.l += 1;
+                state.l = state.l.wrapping_add(1);
                 if state.l == 0 {
-                    state.h += 1;
+                    state.h = state.h.wrapping_add(1);
                 }
             }
             Instruction::InrH => (),
@@ -592,7 +592,7 @@ impl State8080 {
                 let (new_state, pair) = state.reading_next_pair();
                 state = new_state;
 
-                if state.cc.contains(ConditionCodes::Z) {
+                if !state.cc.contains(ConditionCodes::Z) {
                     state.pc = pair.into();
                 }
             }
@@ -761,7 +761,7 @@ impl State8080 {
                 let (new_state, byte) = state.reading_next_byte();
                 state = new_state;
 
-                let res = state.a - byte;
+                let res = state.a.wrapping_sub(byte);
 
                 state.cc.set(ConditionCodes::Z, res == 0);
                 state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
