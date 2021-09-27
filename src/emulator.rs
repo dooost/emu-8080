@@ -516,14 +516,29 @@ impl State8080 {
             Instruction::Xri => (),
             Instruction::Rst5 => (),
             Instruction::Rp => (),
-            Instruction::PopPsw => (),
+
+            // 0xF1
+            Instruction::PopPsw => {
+                state.a = state.memory[state.sp.wrapping_add(1) as usize];
+                state.cc.bits = state.memory[state.sp as usize];
+                state.sp = state.sp.wrapping_add(2);
+                // state.cc.set(ConditionCodes::Z, (psw & 0x01) == 0x01);
+                // state.cc.set(ConditionCodes::S, (psw & 0x02) == 0x02);
+                // state.cc.set(ConditionCodes::P, (psw & 0x04) == 0x04);
+                // state.cc.set(ConditionCodes::CY, (psw & 0x08) == 0x08);
+                // state.cc.set(ConditionCodes::AC, (psw & 0x10) == 0x10);
+            }
             Instruction::Jp => (),
             // 0xF3
             Instruction::Di => {
                 state.interrupt_enabled = false;
             }
             Instruction::Cp => (),
-            Instruction::PushPsw => (),
+            Instruction::PushPsw => {
+                state.memory[state.sp.wrapping_sub(1) as usize] = state.a;
+                state.memory[state.sp.wrapping_sub(2) as usize] = state.cc.bits;
+                state.sp = state.sp.wrapping_sub(2);
+            }
             Instruction::Ori => (),
             Instruction::Rst6 => (),
             Instruction::Rm => (),
