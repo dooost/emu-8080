@@ -367,7 +367,11 @@ impl State8080 {
             Instruction::AnaH => (),
             Instruction::AnaL => (),
             Instruction::AnaM => (),
-            Instruction::AnaA => (),
+            // 0xA7
+            Instruction::AnaA => {
+                state.a = state.a & state.a;
+                state = state.setting_logic_flags_a();
+            }
             Instruction::XraB => (),
             Instruction::XraC => (),
             Instruction::XraD => (),
@@ -375,7 +379,11 @@ impl State8080 {
             Instruction::XraH => (),
             Instruction::XraL => (),
             Instruction::XraM => (),
-            Instruction::XraA => (),
+            // 0xAF
+            Instruction::XraA => {
+                state.a = state.a ^ state.a;
+                state = state.setting_logic_flags_a();
+            }
             Instruction::OraB => (),
             Instruction::OraC => (),
             Instruction::OraD => (),
@@ -534,7 +542,15 @@ impl State8080 {
             Instruction::Rpe => (),
             Instruction::Pchl => (),
             Instruction::Jpe => (),
-            Instruction::Xchg => (),
+            // 0xEB
+            Instruction::Xchg => {
+                let saved_h = state.h;
+                let saved_l = state.l;
+                state.h = state.d;
+                state.l = state.e;
+                state.d = saved_h;
+                state.e = saved_l;
+            }
             Instruction::Cpe => (),
             Instruction::Xri => (),
             Instruction::Rst5 => (),
