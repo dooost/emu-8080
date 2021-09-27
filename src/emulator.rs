@@ -159,14 +159,24 @@ impl State8080 {
             Instruction::InxB => (),
             Instruction::InrB => (),
             Instruction::DcrB => (),
-            Instruction::MviB => (),
+            // 0x06
+            Instruction::MviB => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+                state.b = byte;
+            }
             Instruction::Rlc => (),
             Instruction::DadB => (),
             Instruction::LdaxB => (),
             Instruction::DcxB => (),
             Instruction::InrC => (),
             Instruction::DcrC => (),
-            Instruction::MviC => (),
+            // 0x0E
+            Instruction::MviC => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+                state.c = byte;
+            }
             // 0x0F
             Instruction::Rrc => {
                 let x = state.a;
@@ -211,7 +221,12 @@ impl State8080 {
             }
             Instruction::InrH => (),
             Instruction::DcrH => (),
-            Instruction::MviH => (),
+            // 0x26
+            Instruction::MviH => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+                state.h = byte;
+            }
             Instruction::Daa => (),
             Instruction::DadH => (),
             Instruction::Lhld => (),
@@ -229,14 +244,30 @@ impl State8080 {
             Instruction::InxSp => (),
             Instruction::InrM => (),
             Instruction::DcrM => (),
-            Instruction::MviM => (),
+            // 0x36
+            Instruction::MviM => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+
+                let offset: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                state.memory[offset as usize] = byte;
+            }
             Instruction::Stc => (),
             Instruction::DadSp => (),
             Instruction::Lda => (),
             Instruction::DcxSp => (),
             Instruction::InrA => (),
             Instruction::DcrA => (),
-            Instruction::MviA => (),
+            // 0x3E
+            Instruction::MviA => {
+                let (new_state, byte) = state.reading_next_byte();
+                state = new_state;
+                state.a = byte;
+            }
             Instruction::Cmc => (),
             Instruction::MovBB => (),
             Instruction::MovBC => (),
@@ -260,7 +291,15 @@ impl State8080 {
             Instruction::MovDE => (),
             Instruction::MovDH => (),
             Instruction::MovDL => (),
-            Instruction::MovDM => (),
+            // 0x56
+            Instruction::MovDM => {
+                let offset: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                state.d = state.memory[offset as usize];
+            }
             Instruction::MovDA => (),
             Instruction::MovEB => (),
             Instruction::MovEC => (),
@@ -268,7 +307,15 @@ impl State8080 {
             Instruction::MovEE => (),
             Instruction::MovEH => (),
             Instruction::MovEL => (),
-            Instruction::MovEM => (),
+            // 0x5e
+            Instruction::MovEM => {
+                let offset: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                state.e = state.memory[offset as usize];
+            }
             Instruction::MovEA => (),
             Instruction::MovHB => (),
             Instruction::MovHC => (),
@@ -276,7 +323,15 @@ impl State8080 {
             Instruction::MovHE => (),
             Instruction::MovHH => (),
             Instruction::MovHL => (),
-            Instruction::MovHM => (),
+            // 0x66
+            Instruction::MovHM => {
+                let offset: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                state.h = state.memory[offset as usize];
+            }
             Instruction::MovHA => (),
             Instruction::MovLB => (),
             Instruction::MovLC => (),
@@ -285,7 +340,10 @@ impl State8080 {
             Instruction::MovLH => (),
             Instruction::MovLL => (),
             Instruction::MovLM => (),
-            Instruction::MovLA => (),
+            // 0x6F
+            Instruction::MovLA => {
+                state.l = state.a;
+            }
             Instruction::MovMB => (),
             Instruction::MovMC => (),
             Instruction::MovMD => (),
@@ -293,14 +351,39 @@ impl State8080 {
             Instruction::MovMH => (),
             Instruction::MovML => (),
             Instruction::Hlt => (),
-            Instruction::MovMA => (),
+            // 0x77
+            Instruction::MovMA => {
+                let offset: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                state.memory[offset as usize] = state.a;
+            }
             Instruction::MovAB => (),
             Instruction::MovAC => (),
-            Instruction::MovAD => (),
-            Instruction::MovAE => (),
-            Instruction::MovAH => (),
+            // 0x7A
+            Instruction::MovAD => {
+                state.a = state.d;
+            }
+            // 0x7B
+            Instruction::MovAE => {
+                state.a = state.e;
+            }
+            // 0x7C
+            Instruction::MovAH => {
+                state.a = state.h;
+            }
             Instruction::MovAL => (),
-            Instruction::MovAM => (),
+            // 0x7E
+            Instruction::MovAM => {
+                let offset: u16 = BytePair {
+                    high: state.h,
+                    low: state.l,
+                }
+                .into();
+                state.a = state.memory[offset as usize];
+            }
             Instruction::MovAA => (),
             // 0x80
             Instruction::AddB => {
