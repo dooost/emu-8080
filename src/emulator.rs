@@ -190,7 +190,7 @@ impl State8080 {
                 let res_pair = BytePair::from(res as u16);
                 state.h = res_pair.high;
                 state.l = res_pair.low;
-                state.cc.set(ConditionCodes::CY, (res & 0xffff0000) != 0);
+                state.cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
             }
             Instruction::LdaxB => (),
             Instruction::DcxB => (),
@@ -252,7 +252,7 @@ impl State8080 {
                 let res_pair = BytePair::from(res as u16);
                 state.h = res_pair.high;
                 state.l = res_pair.low;
-                state.cc.set(ConditionCodes::CY, (res & 0xffff0000) != 0);
+                state.cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
             }
             //0x1A
             Instruction::LdaxD => {
@@ -310,7 +310,7 @@ impl State8080 {
                 let res_pair = BytePair::from(res as u16);
                 state.h = res_pair.high;
                 state.l = res_pair.low;
-                state.cc.set(ConditionCodes::CY, (res & 0xffff0000) != 0);
+                state.cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
             }
             Instruction::Lhld => (),
             Instruction::DcxH => (),
