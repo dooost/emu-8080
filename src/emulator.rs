@@ -741,11 +741,6 @@ impl State8080 {
                 state.a = state.memory[state.sp.wrapping_add(1) as usize];
                 state.cc.bits = state.memory[state.sp as usize];
                 state.sp = state.sp.wrapping_add(2);
-                // state.cc.set(ConditionCodes::Z, (psw & 0x01) == 0x01);
-                // state.cc.set(ConditionCodes::S, (psw & 0x02) == 0x02);
-                // state.cc.set(ConditionCodes::P, (psw & 0x04) == 0x04);
-                // state.cc.set(ConditionCodes::CY, (psw & 0x08) == 0x08);
-                // state.cc.set(ConditionCodes::AC, (psw & 0x10) == 0x10);
             }
             Instruction::Jp => (),
             // 0xF3
@@ -781,8 +776,6 @@ impl State8080 {
             }
             Instruction::Rst7 => (),
         }
-
-        // state.pc += instruction.size() as u16 - 1;
 
         state
     }
