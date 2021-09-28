@@ -186,7 +186,7 @@ impl State8080 {
                     low: state.c,
                 }
                 .into();
-                let res = hl as u32 + bc as u32;
+                let res = (hl as u32).wrapping_add(bc as u32);
                 let res_pair = BytePair::from(res as u16);
                 state.h = res_pair.high;
                 state.l = res_pair.low;
@@ -248,7 +248,7 @@ impl State8080 {
                     low: state.e,
                 }
                 .into();
-                let res = hl as u32 + de as u32;
+                let res = (hl as u32).wrapping_add(de as u32);
                 let res_pair = BytePair::from(res as u16);
                 state.h = res_pair.high;
                 state.l = res_pair.low;
@@ -306,7 +306,7 @@ impl State8080 {
                     low: state.l,
                 }
                 .into();
-                let res = hl as u32 + hl as u32;
+                let res = (hl as u32).wrapping_add(hl as u32);
                 let res_pair = BytePair::from(res as u16);
                 state.h = res_pair.high;
                 state.l = res_pair.low;
@@ -486,7 +486,7 @@ impl State8080 {
             Instruction::MovAA => (),
             // 0x80
             Instruction::AddB => {
-                let res_precise = state.a as u16 + state.b as u16;
+                let res_precise = (state.a as u16).wrapping_add(state.b as u16);
                 let res = (res_precise & 0xff) as u8;
 
                 state.a = res;
@@ -508,7 +508,8 @@ impl State8080 {
                 }
                 .into();
 
-                let res_precise = state.a as u16 + state.memory[address as usize] as u16;
+                let res_precise =
+                    (state.a as u16).wrapping_add(state.memory[address as usize] as u16);
                 let res = (res_precise & 0xff) as u8;
 
                 state.a = res;
@@ -616,7 +617,7 @@ impl State8080 {
                 let (new_state, byte) = state.reading_next_byte();
                 state = new_state;
 
-                let res_precise = state.a as u16 + byte as u16;
+                let res_precise = (state.a as u16).wrapping_add(byte as u16);
                 let res = (res_precise & 0xff) as u8;
 
                 state.a = res;
