@@ -164,6 +164,7 @@ impl State8080 {
                 state.cc.set(ConditionCodes::Z, res == 0);
                 state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
                 state.cc.set(ConditionCodes::P, parity(res));
+                state.cc.set(ConditionCodes::AC, res > 0x0f);
                 state.b = res;
             }
             // 0x06
@@ -200,6 +201,7 @@ impl State8080 {
                 state.cc.set(ConditionCodes::Z, res == 0);
                 state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
                 state.cc.set(ConditionCodes::P, parity(res));
+                state.cc.set(ConditionCodes::AC, res > 0x0f);
                 state.c = res;
             }
             // 0x0E
