@@ -586,8 +586,8 @@ impl State8080 {
             Instruction::Rnz => (),
             // 0xC1
             Instruction::PopB => {
-                state.b = state.memory[state.sp as usize];
-                state.c = state.memory[state.sp.wrapping_add(1) as usize];
+                state.c = state.memory[state.sp as usize];
+                state.b = state.memory[state.sp.wrapping_add(1) as usize];
                 state.sp = state.sp.wrapping_add(2);
             }
             // 0xC2
