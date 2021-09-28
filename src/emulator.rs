@@ -117,6 +117,15 @@ impl State8080 {
         state
     }
 
+    fn pushing(self, high: u8, low: u8) -> Self {
+        let mut state = self;
+        state.memory[state.sp.wrapping_sub(1) as usize] = high;
+        state.memory[state.sp.wrapping_sub(2) as usize] = low;
+        state.sp = state.sp.wrapping_sub(2);
+
+        state
+    }
+
     fn log_instruction(&self, instruction: Instruction) {
         // pc is incremented after reading it, we should rewind back here for logging
         let instruction_pc = self.pc - 1;
@@ -616,9 +625,8 @@ impl State8080 {
             Instruction::Cnz => (),
             // 0xC5
             Instruction::PushB => {
-                state.memory[state.sp.wrapping_sub(1) as usize] = state.b;
-                state.memory[state.sp.wrapping_sub(2) as usize] = state.c;
-                state.sp = state.sp.wrapping_sub(2);
+                let (high, low) = (state.b, state.c);
+                state = state.pushing(high, low);
             }
             // 0xC6
             Instruction::Adi => {
@@ -679,9 +687,8 @@ impl State8080 {
             Instruction::Cnc => (),
             // 0xD5
             Instruction::PushD => {
-                state.memory[state.sp.wrapping_sub(1) as usize] = state.d;
-                state.memory[state.sp.wrapping_sub(2) as usize] = state.e;
-                state.sp = state.sp.wrapping_sub(2);
+                let (high, low) = (state.d, state.e);
+                state = state.pushing(high, low);
             }
             Instruction::Sui => (),
             Instruction::Rst2 => (),
@@ -707,9 +714,8 @@ impl State8080 {
             Instruction::Cpo => (),
             // 0xE5
             Instruction::PushH => {
-                state.memory[state.sp.wrapping_sub(1) as usize] = state.h;
-                state.memory[state.sp.wrapping_sub(2) as usize] = state.l;
-                state.sp = state.sp.wrapping_sub(2);
+                let (high, low) = (state.h, state.l);
+                state = state.pushing(high, low);
             }
             // 0xE6
             Instruction::Ani => {
@@ -749,9 +755,8 @@ impl State8080 {
             }
             Instruction::Cp => (),
             Instruction::PushPsw => {
-                state.memory[state.sp.wrapping_sub(1) as usize] = state.a;
-                state.memory[state.sp.wrapping_sub(2) as usize] = state.cc.bits;
-                state.sp = state.sp.wrapping_sub(2);
+                let (high, low) = (state.a, state.cc.bits);
+                state = state.pushing(high, low);
             }
             Instruction::Ori => (),
             Instruction::Rst6 => (),
