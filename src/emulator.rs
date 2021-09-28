@@ -110,6 +110,13 @@ impl State8080 {
         state
     }
 
+    fn setting_ac_flag_a(self) -> Self {
+        let mut state = self;
+        state.cc.set(ConditionCodes::AC, state.a > 0x0F);
+
+        state
+    }
+
     fn log_instruction(&self, instruction: Instruction) {
         // pc is incremented after reading it, we should rewind back here for logging
         let instruction_pc = self.pc - 1;
@@ -552,8 +559,9 @@ impl State8080 {
             Instruction::AnaM => (),
             // 0xA7
             Instruction::AnaA => {
-                state.a = state.a & state.a;
-                state = state.setting_logic_flags_a();
+                let res = state.a & state.a;
+                state.a = res;
+                state = state.setting_logic_flags_a().setting_ac_flag_a();
             }
             Instruction::XraB => (),
             Instruction::XraC => (),
