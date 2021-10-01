@@ -157,6 +157,15 @@ impl State8080 {
         println!("{}", output_line);
     }
 
+    pub fn generating_interrupt(self, int_num: u16) -> Self {
+        let mut state = self;
+        let pc_pair: BytePair = state.pc.into();
+        state = state.pushing(pc_pair.high, pc_pair.low);
+        state.pc = 8 * int_num;
+
+        state
+    }
+
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
         self.log_instruction(instruction.clone());
 
@@ -785,7 +794,7 @@ impl State8080 {
         state
     }
 
-    fn evaluating_next(self) -> Self {
+    pub fn evaluating_next(self) -> Self {
         let (mut state, op_code) = self.reading_next_byte();
 
         match Instruction::try_from(op_code) {
@@ -794,14 +803,6 @@ impl State8080 {
         }
 
         state
-    }
-
-    pub fn run(self) {
-        let mut state = self;
-
-        loop {
-            state = state.evaluating_next();
-        }
     }
 }
 

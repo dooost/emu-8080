@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use emulator::State8080;
 
 mod disassembler;
@@ -21,5 +23,22 @@ fn main() {
 
     println!("Start...");
 
-    state.run();
+    run(state);
+}
+
+fn run(state: State8080) {
+    let mut state = state;
+
+    let mut last_interrupt = Instant::now();
+
+    loop {
+        state = state.evaluating_next();
+
+        if Instant::now().duration_since(last_interrupt).as_secs_f32() > (1.0 / 60.0)
+            && state.interrupt_enabled
+        {
+            state = state.generating_interrupt(2);
+            last_interrupt = Instant::now();
+        }
+    }
 }
