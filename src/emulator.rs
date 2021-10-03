@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::fs::read;
 use std::path::Path;
 
 use bitflags::bitflags;
@@ -37,9 +36,9 @@ pub struct State8080 /*<'a>*/ {
     pub l: u8,
     pub sp: u16,
     pub pc: u16,
-    pub memory: Vec<u8>,
     pub cc: ConditionCodes,
     pub interrupt_enabled: bool,
+    memory: Vec<u8>,
     // input_handler: InjectedIOHandler<'a>,
     // output_handler: InjectedIOHandler<'a>,
 }
@@ -202,6 +201,7 @@ impl State8080 /*<'a>*/ {
         let pc_pair: BytePair = state.pc.into();
         state = state.pushing(pc_pair.high, pc_pair.low);
         state.pc = 8 * int_num;
+        state.interrupt_enabled = false;
 
         state
     }
