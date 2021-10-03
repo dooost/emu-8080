@@ -3,20 +3,23 @@ use std::time::Instant;
 use emu_8080::emulator::State8080;
 
 fn main() {
-    let buf_h = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.h")
-        .expect("Failed to read file");
-    let buf_g = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.g")
-        .expect("Failed to read file");
-    let buf_f = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.f")
-        .expect("Failed to read file");
-    let buf_e = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.e")
-        .expect("Failed to read file");
-
     let state = State8080::new()
-        .loading_buffer_into_memory_at(buf_h, 0)
-        .loading_buffer_into_memory_at(buf_g, 0x800)
-        .loading_buffer_into_memory_at(buf_f, 0x1000)
-        .loading_buffer_into_memory_at(buf_e, 0x1800);
+        .loading_file_into_memory_at(
+            "/Users/prezi/Developer/emu-8080/resources/invaders.h",
+            0x0000,
+        )
+        .loading_file_into_memory_at(
+            "/Users/prezi/Developer/emu-8080/resources/invaders.g",
+            0x0800,
+        )
+        .loading_file_into_memory_at(
+            "/Users/prezi/Developer/emu-8080/resources/invaders.f",
+            0x1000,
+        )
+        .loading_file_into_memory_at(
+            "/Users/prezi/Developer/emu-8080/resources/invaders.e",
+            0x1800,
+        );
     // .setting_in_handler(|byte| println!("{}", byte))
     // .setting_out_handler(|byte| println!("{}", byte));
 

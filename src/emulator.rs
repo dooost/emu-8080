@@ -1,4 +1,6 @@
 use std::convert::TryFrom;
+use std::fs::read;
+use std::path::Path;
 
 use bitflags::bitflags;
 
@@ -85,6 +87,12 @@ impl State8080 /*<'a>*/ {
             memory: new_memory,
             ..self
         }
+    }
+
+    pub fn loading_file_into_memory_at<P: AsRef<Path>>(self, path: P, index: u16) -> Self {
+        let buf = std::fs::read(path).expect("Failed to read file");
+
+        self.loading_buffer_into_memory_at(buf, index)
     }
 
     fn reading_next_byte(self) -> (Self, u8) {
