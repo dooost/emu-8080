@@ -7,6 +7,7 @@ use bitflags::bitflags;
 use crate::disassembler::Instruction;
 
 bitflags! {
+    #[repr(C)]
     pub struct ConditionCodes: u8 {
         const Z = 0b00000001;
         const S = 0b00000010;
@@ -24,6 +25,7 @@ struct BytePair {
 
 // pub struct InjectedIOHandler<'a>(Box<dyn Fn(u8) + 'a>);
 
+#[repr(C)]
 #[derive(Default)]
 pub struct State8080 /*<'a>*/ {
     pub a: u8,
