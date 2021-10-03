@@ -19,7 +19,9 @@ fn main() {
         .loading_buffer_into_memory_at(buf_h, 0)
         .loading_buffer_into_memory_at(buf_g, 0x800)
         .loading_buffer_into_memory_at(buf_f, 0x1000)
-        .loading_buffer_into_memory_at(buf_e, 0x1800);
+        .loading_buffer_into_memory_at(buf_e, 0x1800)
+        .setting_in_handler(|byte| println!("{}", byte))
+        .setting_out_handler(|byte| println!("{}", byte));
 
     println!("Start...");
 
