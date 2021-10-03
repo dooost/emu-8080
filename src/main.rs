@@ -1,9 +1,6 @@
 use std::time::Instant;
 
-use emulator::State8080;
-
-mod disassembler;
-mod emulator;
+use emu_8080::emulator::State8080;
 
 fn main() {
     let buf_h = std::fs::read("/Users/prezi/Developer/emu-8080/resources/invaders.h")
