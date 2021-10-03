@@ -20,10 +20,10 @@ struct BytePair {
     pub high: u8,
 }
 
-pub struct InjectedIOHandler<'a>(Box<dyn Fn(u8) + 'a>);
+// pub struct InjectedIOHandler<'a>(Box<dyn Fn(u8) + 'a>);
 
 #[derive(Default)]
-pub struct State8080<'a> {
+pub struct State8080 /*<'a>*/ {
     pub a: u8,
     pub b: u8,
     pub c: u8,
@@ -36,9 +36,8 @@ pub struct State8080<'a> {
     pub memory: Vec<u8>,
     pub cc: ConditionCodes,
     pub interrupt_enabled: bool,
-
-    input_handler: InjectedIOHandler<'a>,
-    output_handler: InjectedIOHandler<'a>,
+    // input_handler: InjectedIOHandler<'a>,
+    // output_handler: InjectedIOHandler<'a>,
 }
 
 impl Default for ConditionCodes {
@@ -62,13 +61,13 @@ impl From<BytePair> for u16 {
     }
 }
 
-impl Default for InjectedIOHandler<'_> {
-    fn default() -> Self {
-        InjectedIOHandler(Box::new(|_x| {}))
-    }
-}
+// impl Default for InjectedIOHandler<'_> {
+//     fn default() -> Self {
+//         InjectedIOHandler(Box::new(|_x| {}))
+//     }
+// }
 
-impl<'a> State8080<'a> {
+impl State8080 /*<'a>*/ {
     pub fn new() -> Self {
         State8080 {
             memory: vec![0; 0x10000],
@@ -168,25 +167,25 @@ impl<'a> State8080<'a> {
         println!("{}", output_line);
     }
 
-    pub fn setting_in_handler<H>(self, handler: H) -> Self
-    where
-        H: Fn(u8) + 'a,
-    {
-        let mut state = self;
-        state.input_handler = InjectedIOHandler(Box::new(handler));
+    // pub fn setting_in_handler<H>(self, handler: H) -> Self
+    // where
+    //     H: Fn(u8) + 'a,
+    // {
+    //     let mut state = self;
+    //     state.input_handler = InjectedIOHandler(Box::new(handler));
 
-        state
-    }
+    //     state
+    // }
 
-    pub fn setting_out_handler<H>(self, handler: H) -> Self
-    where
-        H: Fn(u8) + 'a,
-    {
-        let mut state = self;
-        state.output_handler = InjectedIOHandler(Box::new(handler));
+    // pub fn setting_out_handler<H>(self, handler: H) -> Self
+    // where
+    //     H: Fn(u8) + 'a,
+    // {
+    //     let mut state = self;
+    //     state.output_handler = InjectedIOHandler(Box::new(handler));
 
-        state
-    }
+    //     state
+    // }
 
     pub fn generating_interrupt(self, int_num: u16) -> Self {
         let mut state = self;
@@ -723,7 +722,7 @@ impl<'a> State8080<'a> {
             Instruction::Out => {
                 let (new_state, b) = state.reading_next_byte();
                 state = new_state;
-                (state.output_handler.0)(b);
+                // (state.output_handler.0)(b);
             }
             Instruction::Cnc => (),
             // 0xD5
@@ -739,7 +738,7 @@ impl<'a> State8080<'a> {
             Instruction::In => {
                 let (new_state, b) = state.reading_next_byte();
                 state = new_state;
-                (state.input_handler.0)(b);
+                // (state.input_handler.0)(b);
             }
             Instruction::Cc => (),
             Instruction::Sbi => (),
