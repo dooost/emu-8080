@@ -7,15 +7,35 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'emu-8080'",
+            "name": "Debug unit tests in library 'emu-8080'",
             "cargo": {
                 "args": [
-                    "build",
-                    "--bin=emu-8080",
+                    "test",
+                    "--no-run",
+                    "--lib",
                     "--package=emu-8080"
                 ],
                 "filter": {
                     "name": "emu-8080",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'diag'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=diag",
+                    "--features=diagsupport",
+                    "--package=emu-8080"
+                ],
+                "filter": {
+                    "name": "diag",
                     "kind": "bin"
                 }
             },
@@ -25,16 +45,54 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'emu-8080'",
+            "name": "Debug unit tests in executable 'diag'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=emu-8080",
+                    "--bin=diag",
+                    "--features=diagsupport",
                     "--package=emu-8080"
                 ],
                 "filter": {
-                    "name": "emu-8080",
+                    "name": "diag",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'run'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=run",
+                    "--package=emu-8080"
+                ],
+                "filter": {
+                    "name": "run",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'run'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=run",
+                    "--package=emu-8080"
+                ],
+                "filter": {
+                    "name": "run",
                     "kind": "bin"
                 }
             },

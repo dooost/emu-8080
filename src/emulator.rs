@@ -98,7 +98,7 @@ impl State8080 /*<'a>*/ {
     fn reading_next_byte(self) -> (Self, u8) {
         let mut state = self;
         let byte = state.memory[state.pc as usize];
-        state.pc += 1;
+        state.pc = state.pc.wrapping_add(1);
 
         (state, byte)
     }
@@ -109,7 +109,7 @@ impl State8080 /*<'a>*/ {
             low: state.memory[state.pc as usize],
             high: state.memory[state.pc as usize + 1],
         };
-        state.pc += 2;
+        state.pc = state.pc.wrapping_add(2);
 
         (state, pair)
     }
@@ -705,6 +705,34 @@ impl State8080 /*<'a>*/ {
             Instruction::Cz => (),
             // 0xCD
             Instruction::Call => {
+                #[cfg(feature = "diagsupport")]
+                {
+                    let (new_state, pair) = state.reading_next_pair();
+                    state = new_state;
+                    state.pc = state.pc.wrapping_sub(2);
+
+                    let addr: u16 = pair.into();
+                    if addr == 5 {
+                        if state.c == 9 {
+                            let offset: u16 = BytePair {
+                                high: state.d,
+                                low: state.e,
+                            }
+                            .into();
+                            state.memory[(offset as usize + 3)..]
+                                .iter()
+                                .take_while(|c| **c != b'$')
+                                .map(|c| *c)
+                                .for_each(|c| print!("{}", c as char));
+                            println!();
+                        } else if state.c == 2 {
+                            println!("print char routine called");
+                        }
+                    } else if addr == 0 {
+                        panic!("Diag hit call 0");
+                    }
+                }
+
                 let (new_state, pair) = state.reading_next_pair();
                 state = new_state;
 
