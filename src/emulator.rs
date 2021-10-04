@@ -24,7 +24,6 @@ struct BytePair {
 
 // pub struct InjectedIOHandler<'a>(Box<dyn Fn(u8) + 'a>);
 
-#[repr(C)]
 #[derive(Default)]
 pub struct State8080 /*<'a>*/ {
     pub a: u8,
