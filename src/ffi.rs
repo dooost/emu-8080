@@ -1,3 +1,7 @@
+use std::ffi::CStr;
+use std::os::raw::c_char;
+use std::ptr::null_mut;
+
 use crate::emulator::State8080;
 
 fn create_raw_pointer(state: State8080) -> *mut State8080 {
@@ -24,4 +28,21 @@ pub extern "C" fn state8080_evaluating_next(ptr: *mut State8080) -> *mut State80
     let state = unsafe { Box::from_raw(ptr) };
 
     create_raw_pointer(state.evaluating_next())
+}
+
+#[no_mangle]
+pub extern "C" fn state8080_loading_file_into_memory_at(
+    ptr: *mut State8080,
+    path: *const c_char,
+    index: u16,
+) -> *mut State8080 {
+    let cstr_path = unsafe { CStr::from_ptr(path) };
+    let path = match cstr_path.to_str() {
+        Err(_) => return null_mut(),
+        Ok(string) => string,
+    };
+
+    let state = unsafe { Box::from_raw(ptr) };
+
+    create_raw_pointer(state.loading_file_into_memory_at(path, index))
 }
