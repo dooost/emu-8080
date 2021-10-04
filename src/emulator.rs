@@ -206,6 +206,8 @@ impl State8080 /*<'a>*/ {
     }
 
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
+        #[cfg(feature = "logging")]
+        #[cfg(not(feature = "diagsupport"))]
         self.log_instruction(instruction.clone());
 
         let mut state = self;
