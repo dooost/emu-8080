@@ -14,14 +14,16 @@ fn main() {
     //Skip DAA test - insert at 0x59c
     let skip_daa = vec![0xc3, 0xc2, 0x05];
 
-    let state = State8080::new()
-        .loading_buffer_into_memory_at(initial_jmp, 0)
+    let mut state = State8080::new()
+        // .loading_buffer_into_memory_at(initial_jmp, 0)
         .loading_file_into_memory_at(
-            "/Users/prezi/Developer/emu-8080/resources/cpudiag.bin",
+            "/Users/prezi/Developer/emu-8080/resources/cpu_tests/CPUTEST.COM",
             0x0100,
-        )
-        .loading_buffer_into_memory_at(sp_correction, 368)
-        .loading_buffer_into_memory_at(skip_daa, 0x59c);
+        );
+    // .loading_buffer_into_memory_at(sp_correction, 368)
+    // .loading_buffer_into_memory_at(skip_daa, 0x59c);
+
+    state.pc = 0x100;
 
     println!("Start...");
 
