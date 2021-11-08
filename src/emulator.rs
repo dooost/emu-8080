@@ -95,6 +95,16 @@ impl State8080 /*<'a>*/ {
         self.loading_buffer_into_memory_at(buf, index)
     }
 
+    pub fn setting_memory_at(self, byte: u8, index: u16) -> Self {
+        let mut new_memory = self.memory;
+        new_memory[index as usize] = byte;
+
+        State8080 {
+            memory: new_memory,
+            ..self
+        }
+    }
+
     fn reading_next_byte(self) -> (Self, u8) {
         let mut state = self;
         let byte = state.memory[state.pc as usize];
@@ -205,664 +215,782 @@ impl State8080 /*<'a>*/ {
         state
     }
 
+    fn setting_bc(self, pair: BytePair) -> Self {
+        Self {
+            b: pair.high,
+            c: pair.low,
+            ..self
+        }
+    }
+
+    fn setting_de(self, pair: BytePair) -> Self {
+        Self {
+            d: pair.high,
+            e: pair.low,
+            ..self
+        }
+    }
+
+    fn setting_hl(self, pair: BytePair) -> Self {
+        Self {
+            h: pair.high,
+            l: pair.low,
+            ..self
+        }
+    }
+
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
         #[cfg(feature = "logging")]
         #[cfg(not(feature = "diagsupport"))]
         self.log_instruction(instruction.clone());
 
-        let mut state = self;
+        // let state;
         match instruction {
-            Instruction::Nop => (),
+            // 0x00
+            Instruction::Nop => self,
+
             // 0x01
             Instruction::LxiB => {
-                let (new_state, byte_pair) = state.reading_next_pair();
+                let (new_state, byte_pair) = self.reading_next_pair();
 
-                state = new_state;
-                state.b = byte_pair.high;
-                state.c = byte_pair.low
+                new_state.setting_bc(byte_pair)
             }
-            Instruction::StaxB => (),
-            Instruction::InxB => (),
-            Instruction::InrB => (),
+            // 0x11
+            Instruction::LxiD => {
+                let (new_state, byte_pair) = self.reading_next_pair();
+
+                new_state.setting_de(byte_pair)
+            }
+            // 0x21
+            Instruction::LxiH => {
+                let (new_state, byte_pair) = self.reading_next_pair();
+
+                new_state.setting_hl(byte_pair)
+            }
+            // 0x31
+            Instruction::LxiSp => {
+                let (new_state, pair) = self.reading_next_pair();
+
+                Self {
+                    sp: pair.into(),
+                    ..new_state
+                }
+            }
+
             // 0x05
             Instruction::DcrB => {
-                let res = state.b.wrapping_sub(1);
-                state.cc.set(ConditionCodes::Z, res == 0);
-                state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
-                state.cc.set(ConditionCodes::P, parity(res));
-                state.cc.set(ConditionCodes::AC, res > 0x0f);
-                state.b = res;
+                let res = self.b.wrapping_sub(1);
+                let mut cc = self.cc.clone();
+                cc.set(ConditionCodes::Z, res == 0);
+                cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
+                cc.set(ConditionCodes::P, parity(res));
+                cc.set(ConditionCodes::AC, res > 0x0f);
+
+                Self { b: res, cc, ..self }
+            }
+
+            // 0x0D
+            Instruction::DcrC => {
+                let res = self.c.wrapping_sub(1);
+                let mut cc = self.cc.clone();
+                cc.set(ConditionCodes::Z, res == 0);
+                cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
+                cc.set(ConditionCodes::P, parity(res));
+                cc.set(ConditionCodes::AC, res > 0x0f);
+
+                Self { c: res, cc, ..self }
+            }
+
+            Instruction::StaxB => self,
+            Instruction::InxB => self,
+            Instruction::InrB => self,
+
+            // 0x3E
+            Instruction::MviA => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                Self {
+                    a: byte,
+                    ..new_state
+                }
             }
             // 0x06
             Instruction::MviB => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
-                state.b = byte;
+                let (new_state, byte) = self.reading_next_byte();
+
+                Self {
+                    b: byte,
+                    ..new_state
+                }
             }
-            Instruction::Rlc => (),
+            // 0x0E
+            Instruction::MviC => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                Self {
+                    c: byte,
+                    ..new_state
+                }
+            }
+            Instruction::MviD => self,
+            Instruction::MviE => self,
+            // 0x26
+            Instruction::MviH => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                Self {
+                    h: byte,
+                    ..new_state
+                }
+            }
+            Instruction::MviL => self,
+            // 0x36
+            Instruction::MviM => {
+                let (mut new_state, byte) = self.reading_next_byte();
+                let offset: u16 = BytePair {
+                    high: new_state.h,
+                    low: new_state.l,
+                }
+                .into();
+                new_state.memory[offset as usize] = byte;
+
+                new_state
+            }
+
             // 0x09
             Instruction::DadB => {
                 let hl: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
                 let bc: u16 = BytePair {
-                    high: state.b,
-                    low: state.c,
+                    high: self.b,
+                    low: self.c,
                 }
                 .into();
                 let res = (hl as u32).wrapping_add(bc as u32);
                 let res_pair = BytePair::from(res as u16);
-                state.h = res_pair.high;
-                state.l = res_pair.low;
-                state.cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
+                let new_state = self.setting_hl(res_pair);
+
+                let mut cc = new_state.cc.clone();
+                cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
+                Self { cc, ..new_state }
             }
-            Instruction::LdaxB => (),
-            Instruction::DcxB => (),
-            Instruction::InrC => (),
-            // 0x0D
-            Instruction::DcrC => {
-                let res = state.c.wrapping_sub(1);
-                state.cc.set(ConditionCodes::Z, res == 0);
-                state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
-                state.cc.set(ConditionCodes::P, parity(res));
-                state.cc.set(ConditionCodes::AC, res > 0x0f);
-                state.c = res;
-            }
-            // 0x0E
-            Instruction::MviC => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
-                state.c = byte;
-            }
+
+            Instruction::Rlc => self,
+
+            Instruction::LdaxB => self,
+            Instruction::DcxB => self,
+            Instruction::InrC => self,
+
             // 0x0F
             Instruction::Rrc => {
-                let x = state.a;
-                state.a = ((x & 1) << 7) | (x >> 1);
-                state.cc.set(ConditionCodes::CY, (x & 1) == 1);
+                let x = self.a;
+                let mut cc = self.cc.clone();
+                let a = ((x & 1) << 7) | (x >> 1);
+                cc.set(ConditionCodes::CY, (x & 1) == 1);
+                Self { a, cc, ..self }
             }
-            // 0x11
-            Instruction::LxiD => {
-                let (new_state, byte_pair) = state.reading_next_pair();
 
-                state = new_state;
-                state.d = byte_pair.high;
-                state.e = byte_pair.low
-            }
-            Instruction::StaxD => (),
+            Instruction::StaxD => self,
             // 0x13
             Instruction::InxD => {
-                state.e = state.e.wrapping_add(1);
-                if state.e == 0 {
-                    state.d = state.d.wrapping_add(1);
+                let e = self.e.wrapping_add(1);
+                let mut d: Option<u8> = None;
+                if e == 0 {
+                    d = Some(self.d.wrapping_add(1));
+                }
+                Self {
+                    e,
+                    d: d.unwrap_or(self.d),
+                    ..self
                 }
             }
-            Instruction::InrD => (),
-            Instruction::DcrD => (),
-            Instruction::MviD => (),
-            Instruction::Ral => (),
+            Instruction::InrD => self,
+            Instruction::DcrD => self,
+            Instruction::Ral => self,
             // 0x19
             Instruction::DadD => {
                 let hl: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
                 let de: u16 = BytePair {
-                    high: state.d,
-                    low: state.e,
+                    high: self.d,
+                    low: self.e,
                 }
                 .into();
                 let res = (hl as u32).wrapping_add(de as u32);
                 let res_pair = BytePair::from(res as u16);
-                state.h = res_pair.high;
-                state.l = res_pair.low;
-                state.cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
+                let new_state = self.setting_hl(res_pair);
+
+                let mut cc = new_state.cc.clone();
+                cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
+                Self { cc, ..new_state }
             }
             //0x1A
             Instruction::LdaxD => {
                 let offset: u16 = BytePair {
-                    high: state.d,
-                    low: state.e,
+                    high: self.d,
+                    low: self.e,
                 }
                 .into();
-                state.a = state.memory[offset as usize];
-            }
-            Instruction::DcxD => (),
-            Instruction::InrE => (),
-            Instruction::DcrE => (),
-            Instruction::MviE => (),
-            // 0x1F
-            Instruction::Rar => {
-                let x = state.a;
-                let carry_u8 = state.cc.contains(ConditionCodes::CY) as u8;
-                state.a = ((carry_u8 & 1) << 7) | (x >> 1);
-                state.cc.set(ConditionCodes::CY, (x & 1) == 1);
-            }
-            // 0x21
-            Instruction::LxiH => {
-                let (new_state, byte_pair) = state.reading_next_pair();
 
-                state = new_state;
-                state.h = byte_pair.high;
-                state.l = byte_pair.low
-            }
-            Instruction::Shld => (),
-            // 0x23
-            Instruction::InxH => {
-                state.l = state.l.wrapping_add(1);
-                if state.l == 0 {
-                    state.h = state.h.wrapping_add(1);
+                Self {
+                    a: self.memory[offset as usize],
+                    ..self
                 }
             }
-            Instruction::InrH => (),
-            Instruction::DcrH => (),
-            // 0x26
-            Instruction::MviH => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
-                state.h = byte;
+            Instruction::DcxD => self,
+            Instruction::InrE => self,
+            Instruction::DcrE => self,
+            // 0x1F
+            Instruction::Rar => {
+                let x = self.a;
+                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
+                let mut cc = self.cc.clone();
+                let a = ((carry_u8 & 1) << 7) | (x >> 1);
+                cc.set(ConditionCodes::CY, (x & 1) == 1);
+                Self { a, cc, ..self }
             }
-            Instruction::Daa => (),
+
+            Instruction::Shld => self,
+            // 0x23
+            Instruction::InxH => {
+                let l = self.l.wrapping_add(1);
+                let mut h: Option<u8> = None;
+                if l == 0 {
+                    h = Some(self.h.wrapping_add(1));
+                }
+                Self {
+                    l,
+                    h: h.unwrap_or(self.h),
+                    ..self
+                }
+            }
+            Instruction::InrH => self,
+            Instruction::DcrH => self,
+            Instruction::Daa => self,
             // 0x29
             Instruction::DadH => {
                 let hl: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
                 let res = (hl as u32).wrapping_add(hl as u32);
                 let res_pair = BytePair::from(res as u16);
-                state.h = res_pair.high;
-                state.l = res_pair.low;
-                state.cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
+                let new_state = self.setting_hl(res_pair);
+
+                let mut cc = new_state.cc.clone();
+                cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
+                Self { cc, ..new_state }
             }
-            Instruction::Lhld => (),
-            Instruction::DcxH => (),
-            Instruction::InrL => (),
-            Instruction::DcrL => (),
-            Instruction::MviL => (),
+            Instruction::Lhld => self,
+            Instruction::DcxH => self,
+            Instruction::InrL => self,
+            Instruction::DcrL => self,
             // 0x2F
-            Instruction::Cma => {
-                state.a = !state.a;
-            }
-            // 0x31
-            Instruction::LxiSp => {
-                let (new_state, pair) = state.reading_next_pair();
-                state = new_state;
-                state.sp = pair.into();
-            }
+            Instruction::Cma => Self { a: !self.a, ..self },
+
             // 0x32
             Instruction::Sta => {
-                let (new_state, pair) = state.reading_next_pair();
+                let (new_state, pair) = self.reading_next_pair();
                 let offset: u16 = pair.into();
-                state = new_state;
-                state.memory[offset as usize] = state.a;
+                let byte = new_state.a;
+                new_state.setting_memory_at(byte, offset)
             }
-            Instruction::InxSp => (),
-            Instruction::InrM => (),
-            Instruction::DcrM => (),
-            // 0x36
-            Instruction::MviM => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
+            Instruction::InxSp => self,
+            Instruction::InrM => self,
+            Instruction::DcrM => self,
 
-                let offset: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
-                }
-                .into();
-                state.memory[offset as usize] = byte;
-            }
-            Instruction::Stc => (),
-            Instruction::DadSp => (),
+            Instruction::Stc => self,
+            Instruction::DadSp => self,
             // 0x3A
             Instruction::Lda => {
-                let (new_state, pair) = state.reading_next_pair();
+                let (new_state, pair) = self.reading_next_pair();
                 let offset: u16 = pair.into();
-                state = new_state;
-                state.a = state.memory[offset as usize];
+                Self {
+                    a: new_state.memory[offset as usize],
+                    ..new_state
+                }
             }
-            Instruction::DcxSp => (),
-            Instruction::InrA => (),
-            Instruction::DcrA => (),
-            // 0x3E
-            Instruction::MviA => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
-                state.a = byte;
-            }
-            Instruction::Cmc => (),
-            Instruction::MovBB => (),
-            Instruction::MovBC => (),
-            Instruction::MovBD => (),
-            Instruction::MovBE => (),
-            Instruction::MovBH => (),
-            Instruction::MovBL => (),
-            Instruction::MovBM => (),
-            Instruction::MovBA => (),
-            Instruction::MovCB => (),
-            Instruction::MovCC => (),
-            Instruction::MovCD => (),
-            Instruction::MovCE => (),
-            Instruction::MovCH => (),
-            Instruction::MovCL => (),
-            Instruction::MovCM => (),
-            Instruction::MovCA => (),
-            Instruction::MovDB => (),
-            Instruction::MovDC => (),
-            Instruction::MovDD => (),
-            Instruction::MovDE => (),
-            Instruction::MovDH => (),
-            Instruction::MovDL => (),
+            Instruction::DcxSp => self,
+            Instruction::InrA => self,
+            Instruction::DcrA => self,
+
+            Instruction::Cmc => self,
+            Instruction::MovBB => self,
+            Instruction::MovBC => self,
+            Instruction::MovBD => self,
+            Instruction::MovBE => self,
+            Instruction::MovBH => self,
+            Instruction::MovBL => self,
+            Instruction::MovBM => self,
+            Instruction::MovBA => self,
+            Instruction::MovCB => self,
+            Instruction::MovCC => self,
+            Instruction::MovCD => self,
+            Instruction::MovCE => self,
+            Instruction::MovCH => self,
+            Instruction::MovCL => self,
+            Instruction::MovCM => self,
+            Instruction::MovCA => self,
+            Instruction::MovDB => self,
+            Instruction::MovDC => self,
+            Instruction::MovDD => self,
+            Instruction::MovDE => self,
+            Instruction::MovDH => self,
+            Instruction::MovDL => self,
             // 0x56
             Instruction::MovDM => {
                 let offset: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
-                state.d = state.memory[offset as usize];
+                Self {
+                    d: self.memory[offset as usize],
+                    ..self
+                }
             }
-            Instruction::MovDA => (),
-            Instruction::MovEB => (),
-            Instruction::MovEC => (),
-            Instruction::MovED => (),
-            Instruction::MovEE => (),
-            Instruction::MovEH => (),
-            Instruction::MovEL => (),
+            Instruction::MovDA => self,
+            Instruction::MovEB => self,
+            Instruction::MovEC => self,
+            Instruction::MovED => self,
+            Instruction::MovEE => self,
+            Instruction::MovEH => self,
+            Instruction::MovEL => self,
             // 0x5e
             Instruction::MovEM => {
                 let offset: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
-                state.e = state.memory[offset as usize];
+                Self {
+                    e: self.memory[offset as usize],
+                    ..self
+                }
             }
-            Instruction::MovEA => (),
-            Instruction::MovHB => (),
-            Instruction::MovHC => (),
-            Instruction::MovHD => (),
-            Instruction::MovHE => (),
-            Instruction::MovHH => (),
-            Instruction::MovHL => (),
+            Instruction::MovEA => self,
+            Instruction::MovHB => self,
+            Instruction::MovHC => self,
+            Instruction::MovHD => self,
+            Instruction::MovHE => self,
+            Instruction::MovHH => self,
+            Instruction::MovHL => self,
             // 0x66
             Instruction::MovHM => {
                 let offset: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
-                state.h = state.memory[offset as usize];
+                Self {
+                    h: self.memory[offset as usize],
+                    ..self
+                }
             }
-            Instruction::MovHA => (),
-            Instruction::MovLB => (),
-            Instruction::MovLC => (),
-            Instruction::MovLD => (),
-            Instruction::MovLE => (),
-            Instruction::MovLH => (),
-            Instruction::MovLL => (),
-            Instruction::MovLM => (),
+            Instruction::MovHA => self,
+            Instruction::MovLB => self,
+            Instruction::MovLC => self,
+            Instruction::MovLD => self,
+            Instruction::MovLE => self,
+            Instruction::MovLH => self,
+            Instruction::MovLL => self,
+            Instruction::MovLM => self,
             // 0x6F
-            Instruction::MovLA => {
-                state.l = state.a;
-            }
-            Instruction::MovMB => (),
-            Instruction::MovMC => (),
-            Instruction::MovMD => (),
-            Instruction::MovME => (),
-            Instruction::MovMH => (),
-            Instruction::MovML => (),
-            Instruction::Hlt => (),
+            Instruction::MovLA => Self { l: self.a, ..self },
+            Instruction::MovMB => self,
+            Instruction::MovMC => self,
+            Instruction::MovMD => self,
+            Instruction::MovME => self,
+            Instruction::MovMH => self,
+            Instruction::MovML => self,
+            Instruction::Hlt => self,
             // 0x77
             Instruction::MovMA => {
                 let offset: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
-                state.memory[offset as usize] = state.a;
+                let byte = self.a;
+                self.setting_memory_at(byte, offset)
             }
-            Instruction::MovAB => (),
-            Instruction::MovAC => (),
+            Instruction::MovAB => self,
+            Instruction::MovAC => self,
             // 0x7A
-            Instruction::MovAD => {
-                state.a = state.d;
-            }
+            Instruction::MovAD => Self { a: self.d, ..self },
             // 0x7B
-            Instruction::MovAE => {
-                state.a = state.e;
-            }
+            Instruction::MovAE => Self { a: self.e, ..self },
             // 0x7C
-            Instruction::MovAH => {
-                state.a = state.h;
-            }
-            Instruction::MovAL => (),
+            Instruction::MovAH => Self { a: self.h, ..self },
+            Instruction::MovAL => self,
             // 0x7E
             Instruction::MovAM => {
                 let offset: u16 = BytePair {
-                    high: state.h,
-                    low: state.l,
+                    high: self.h,
+                    low: self.l,
                 }
                 .into();
-                state.a = state.memory[offset as usize];
+                Self {
+                    a: self.memory[offset as usize],
+                    ..self
+                }
             }
-            Instruction::MovAA => (),
+            Instruction::MovAA => self,
             // 0x80
             Instruction::AddB => {
-                let res_precise = (state.a as u16).wrapping_add(state.b as u16);
+                let mut cc = self.cc.clone();
+                let res_precise = (self.a as u16).wrapping_add(self.b as u16);
                 let res = (res_precise & 0xff) as u8;
+                cc.set(ConditionCodes::Z, res == 0);
+                cc.set(ConditionCodes::S, res & 0x80 != 0);
+                cc.set(ConditionCodes::P, parity(res));
+                cc.set(ConditionCodes::CY, res_precise > 0xff);
 
-                state.a = res;
-                state.cc.set(ConditionCodes::Z, res == 0);
-                state.cc.set(ConditionCodes::S, res & 0x80 != 0);
-                state.cc.set(ConditionCodes::P, parity(res));
-                state.cc.set(ConditionCodes::CY, res_precise > 0xff);
+                Self { a: res, cc, ..self }
             }
-            Instruction::AddC => (),
-            Instruction::AddD => (),
-            Instruction::AddE => (),
-            Instruction::AddH => (),
-            Instruction::AddL => (),
+            Instruction::AddC => self,
+            Instruction::AddD => self,
+            Instruction::AddE => self,
+            Instruction::AddH => self,
+            Instruction::AddL => self,
             // 0x86
             Instruction::AddM => {
+                let mut cc = self.cc.clone();
                 let address: u16 = BytePair {
-                    low: state.l,
-                    high: state.h,
+                    low: self.l,
+                    high: self.h,
                 }
                 .into();
 
                 let res_precise =
-                    (state.a as u16).wrapping_add(state.memory[address as usize] as u16);
+                    (self.a as u16).wrapping_add(self.memory[address as usize] as u16);
                 let res = (res_precise & 0xff) as u8;
+                cc.set(ConditionCodes::Z, res == 0);
+                cc.set(ConditionCodes::S, res & 0x80 != 0);
+                cc.set(ConditionCodes::P, parity(res));
+                cc.set(ConditionCodes::CY, res_precise > 0xff);
 
-                state.a = res;
-                state.cc.set(ConditionCodes::Z, res == 0);
-                state.cc.set(ConditionCodes::S, res & 0x80 != 0);
-                state.cc.set(ConditionCodes::P, parity(res));
-                state.cc.set(ConditionCodes::CY, res_precise > 0xff);
+                Self { a: res, cc, ..self }
             }
-            Instruction::AddA => (),
-            Instruction::AdcB => (),
-            Instruction::AdcC => (),
-            Instruction::AdcD => (),
-            Instruction::AdcE => (),
-            Instruction::AdcH => (),
-            Instruction::AdcL => (),
-            Instruction::AdcM => (),
-            Instruction::AdcA => (),
-            Instruction::SubB => (),
-            Instruction::SubC => (),
-            Instruction::SubD => (),
-            Instruction::SubE => (),
-            Instruction::SubH => (),
-            Instruction::SubL => (),
-            Instruction::SubM => (),
-            Instruction::SubA => (),
-            Instruction::SbbB => (),
-            Instruction::SbbC => (),
-            Instruction::SbbD => (),
-            Instruction::SbbE => (),
-            Instruction::SbbH => (),
-            Instruction::SbbL => (),
-            Instruction::SbbM => (),
-            Instruction::SbbA => (),
-            Instruction::AnaB => (),
-            Instruction::AnaC => (),
-            Instruction::AnaD => (),
-            Instruction::AnaE => (),
-            Instruction::AnaH => (),
-            Instruction::AnaL => (),
-            Instruction::AnaM => (),
+            Instruction::AddA => self,
+            Instruction::AdcB => self,
+            Instruction::AdcC => self,
+            Instruction::AdcD => self,
+            Instruction::AdcE => self,
+            Instruction::AdcH => self,
+            Instruction::AdcL => self,
+            Instruction::AdcM => self,
+            Instruction::AdcA => self,
+            Instruction::SubB => self,
+            Instruction::SubC => self,
+            Instruction::SubD => self,
+            Instruction::SubE => self,
+            Instruction::SubH => self,
+            Instruction::SubL => self,
+            Instruction::SubM => self,
+            Instruction::SubA => self,
+            Instruction::SbbB => self,
+            Instruction::SbbC => self,
+            Instruction::SbbD => self,
+            Instruction::SbbE => self,
+            Instruction::SbbH => self,
+            Instruction::SbbL => self,
+            Instruction::SbbM => self,
+            Instruction::SbbA => self,
+            Instruction::AnaB => self,
+            Instruction::AnaC => self,
+            Instruction::AnaD => self,
+            Instruction::AnaE => self,
+            Instruction::AnaH => self,
+            Instruction::AnaL => self,
+            Instruction::AnaM => self,
             // 0xA7
             Instruction::AnaA => {
-                let res = state.a & state.a;
-                state.a = res;
-                state = state.setting_logic_flags_a().setting_ac_flag_a();
+                let new_state = Self {
+                    a: self.a & self.a,
+                    ..self
+                };
+
+                new_state.setting_logic_flags_a().setting_ac_flag_a()
             }
-            Instruction::XraB => (),
-            Instruction::XraC => (),
-            Instruction::XraD => (),
-            Instruction::XraE => (),
-            Instruction::XraH => (),
-            Instruction::XraL => (),
-            Instruction::XraM => (),
+            Instruction::XraB => self,
+            Instruction::XraC => self,
+            Instruction::XraD => self,
+            Instruction::XraE => self,
+            Instruction::XraH => self,
+            Instruction::XraL => self,
+            Instruction::XraM => self,
             // 0xAF
             Instruction::XraA => {
-                state.a = state.a ^ state.a;
-                state = state.setting_logic_flags_a();
+                let new_state = Self {
+                    a: self.a ^ self.a,
+                    ..self
+                };
+
+                new_state.setting_logic_flags_a()
             }
-            Instruction::OraB => (),
-            Instruction::OraC => (),
-            Instruction::OraD => (),
-            Instruction::OraE => (),
-            Instruction::OraH => (),
-            Instruction::OraL => (),
-            Instruction::OraM => (),
-            Instruction::OraA => (),
-            Instruction::CmpB => (),
-            Instruction::CmpC => (),
-            Instruction::CmpD => (),
-            Instruction::CmpE => (),
-            Instruction::CmpH => (),
-            Instruction::CmpL => (),
-            Instruction::CmpM => (),
-            Instruction::CmpA => (),
-            Instruction::Rnz => (),
+            Instruction::OraB => self,
+            Instruction::OraC => self,
+            Instruction::OraD => self,
+            Instruction::OraE => self,
+            Instruction::OraH => self,
+            Instruction::OraL => self,
+            Instruction::OraM => self,
+            Instruction::OraA => self,
+            Instruction::CmpB => self,
+            Instruction::CmpC => self,
+            Instruction::CmpD => self,
+            Instruction::CmpE => self,
+            Instruction::CmpH => self,
+            Instruction::CmpL => self,
+            Instruction::CmpM => self,
+            Instruction::CmpA => self,
+            Instruction::Rnz => self,
             // 0xC1
-            Instruction::PopB => {
-                state.c = state.memory[state.sp as usize];
-                state.b = state.memory[state.sp.wrapping_add(1) as usize];
-                state.sp = state.sp.wrapping_add(2);
-            }
+            Instruction::PopB => Self {
+                c: self.memory[self.sp as usize],
+                b: self.memory[self.sp.wrapping_add(1) as usize],
+                sp: self.sp.wrapping_add(2),
+                ..self
+            },
             // 0xC2
             Instruction::Jnz => {
-                let (new_state, pair) = state.reading_next_pair();
-                state = new_state;
+                let (new_state, pair) = self.reading_next_pair();
 
-                if !state.cc.contains(ConditionCodes::Z) {
-                    state.pc = pair.into();
+                if !new_state.cc.contains(ConditionCodes::Z) {
+                    Self {
+                        pc: pair.into(),
+                        ..new_state
+                    }
+                } else {
+                    new_state
                 }
             }
             // 0xC3
             Instruction::Jmp => {
-                let (new_state, pair) = state.reading_next_pair();
-                state = new_state;
-                state.pc = pair.into();
+                let (new_state, pair) = self.reading_next_pair();
+                Self {
+                    pc: pair.into(),
+                    ..new_state
+                }
             }
-            Instruction::Cnz => (),
+            Instruction::Cnz => self,
             // 0xC5
             Instruction::PushB => {
-                let (high, low) = (state.b, state.c);
-                state = state.pushing(high, low);
+                let (high, low) = (self.b, self.c);
+                self.pushing(high, low)
             }
             // 0xC6
             Instruction::Adi => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
+                let mut cc = self.cc.clone();
+                let (new_state, byte) = self.reading_next_byte();
 
-                let res_precise = (state.a as u16).wrapping_add(byte as u16);
+                let res_precise = (new_state.a as u16).wrapping_add(byte as u16);
                 let res = (res_precise & 0xff) as u8;
+                cc.set(ConditionCodes::Z, res == 0);
+                cc.set(ConditionCodes::S, res & 0x80 != 0);
+                cc.set(ConditionCodes::P, parity(res));
+                cc.set(ConditionCodes::CY, res_precise > 0xff);
 
-                state.a = res;
-                state.cc.set(ConditionCodes::Z, res == 0);
-                state.cc.set(ConditionCodes::S, res & 0x80 != 0);
-                state.cc.set(ConditionCodes::P, parity(res));
-                state.cc.set(ConditionCodes::CY, res_precise > 0xff);
+                Self {
+                    a: res,
+                    cc,
+                    ..new_state
+                }
             }
-            Instruction::Rst0 => (),
-            Instruction::Rz => (),
+            Instruction::Rst0 => self,
+            Instruction::Rz => self,
             // 0xC9
             Instruction::Ret => {
-                let low = state.memory[state.sp as usize];
-                let high = state.memory[state.sp.wrapping_add(1) as usize];
-                state.sp = state.sp.wrapping_add(2);
-                state.pc = BytePair { low, high }.into();
+                let low = self.memory[self.sp as usize];
+                let high = self.memory[self.sp.wrapping_add(1) as usize];
+
+                Self {
+                    sp: self.sp.wrapping_add(2),
+                    pc: BytePair { low, high }.into(),
+                    ..self
+                }
             }
-            Instruction::Jz => (),
-            Instruction::Cz => (),
+            Instruction::Jz => self,
+            Instruction::Cz => self,
             // 0xCD
             Instruction::Call => {
-                #[cfg(feature = "diagsupport")]
-                {
-                    let (new_state, pair) = state.reading_next_pair();
-                    state = new_state;
-                    state.pc = state.pc.wrapping_sub(2);
+                let (new_state, pair) = self.reading_next_pair();
 
-                    let addr: u16 = pair.into();
-                    if addr == 5 {
-                        if state.c == 9 {
-                            let offset: u16 = BytePair {
-                                high: state.d,
-                                low: state.e,
-                            }
-                            .into();
-                            state.memory[(offset as usize + 3)..]
-                                .iter()
-                                .take_while(|c| **c != b'$')
-                                .map(|c| *c)
-                                .for_each(|c| print!("{}", c as char));
-                            println!();
-                        } else if state.c == 2 {
-                            println!("print char routine called");
+                let addr: u16 = pair.into();
+                if cfg!(feature = "diagsupport") && addr == 5 {
+                    if new_state.c == 9 {
+                        let offset: u16 = BytePair {
+                            high: new_state.d,
+                            low: new_state.e,
                         }
-                    } else if addr == 0 {
-                        panic!("Diag hit call 0");
+                        .into();
+                        new_state.memory[(offset as usize + 3)..]
+                            .iter()
+                            .take_while(|c| **c != b'$')
+                            .map(|c| *c)
+                            .for_each(|c| print!("{}", c as char));
+                        println!();
+                    } else if new_state.c == 2 {
+                        println!("print char routine called");
                     }
+
+                    new_state
+                } else if cfg!(feature = "diagsupport") && addr == 0 {
+                    panic!("Diag hit call 0");
+                } else {
+                    let return_addr = new_state.pc;
+                    let return_pair = BytePair::from(return_addr);
+
+                    let high_mem_addr = new_state.sp.wrapping_sub(1);
+                    let low_mem_addr = new_state.sp.wrapping_sub(2);
+
+                    let new_state = Self {
+                        pc: addr,
+                        ..new_state
+                    };
+
+                    new_state
+                        .setting_memory_at(return_pair.high, high_mem_addr)
+                        .setting_memory_at(return_pair.low, low_mem_addr)
                 }
-
-                let (new_state, pair) = state.reading_next_pair();
-                state = new_state;
-
-                let return_addr = state.pc;
-                let return_pair = BytePair::from(return_addr);
-
-                let high_mem_addr = state.sp.wrapping_sub(1);
-                let low_mem_addr = state.sp.wrapping_sub(2);
-                state.memory[high_mem_addr as usize] = return_pair.high;
-                state.memory[low_mem_addr as usize] = return_pair.low;
-                state.sp = low_mem_addr;
-
-                state.pc = pair.into();
             }
-            Instruction::Aci => (),
-            Instruction::Rst1 => (),
-            Instruction::Rnc => (),
+            Instruction::Aci => self,
+            Instruction::Rst1 => self,
+            Instruction::Rnc => self,
             // 0xD1
-            Instruction::PopD => {
-                state.e = state.memory[state.sp as usize];
-                state.d = state.memory[state.sp.wrapping_add(1) as usize];
-                state.sp = state.sp.wrapping_add(2);
-            }
-            Instruction::Jnc => (),
+            Instruction::PopD => Self {
+                e: self.memory[self.sp as usize],
+                d: self.memory[self.sp.wrapping_add(1) as usize],
+                sp: self.sp.wrapping_add(2),
+                ..self
+            },
+            Instruction::Jnc => self,
             // 0xD3
             Instruction::Out => {
-                let (new_state, b) = state.reading_next_byte();
-                state = new_state;
+                let (new_state, b) = self.reading_next_byte();
+                new_state
                 // (state.output_handler.0)(b);
             }
-            Instruction::Cnc => (),
+            Instruction::Cnc => self,
             // 0xD5
             Instruction::PushD => {
-                let (high, low) = (state.d, state.e);
-                state = state.pushing(high, low);
+                let (high, low) = (self.d, self.e);
+                self.pushing(high, low)
             }
-            Instruction::Sui => (),
-            Instruction::Rst2 => (),
-            Instruction::Rc => (),
-            Instruction::Jc => (),
+            Instruction::Sui => self,
+            Instruction::Rst2 => self,
+            Instruction::Rc => self,
+            Instruction::Jc => self,
             // 0xDB
             Instruction::In => {
-                let (new_state, b) = state.reading_next_byte();
-                state = new_state;
+                let (new_state, b) = self.reading_next_byte();
+                new_state
                 // (state.input_handler.0)(b);
             }
-            Instruction::Cc => (),
-            Instruction::Sbi => (),
-            Instruction::Rst3 => (),
-            Instruction::Rpo => (),
+            Instruction::Cc => self,
+            Instruction::Sbi => self,
+            Instruction::Rst3 => self,
+            Instruction::Rpo => self,
             // 0xE1
-            Instruction::PopH => {
-                state.l = state.memory[state.sp as usize];
-                state.h = state.memory[state.sp.wrapping_add(1) as usize];
-                state.sp = state.sp.wrapping_add(2);
-            }
-            Instruction::Jpo => (),
-            Instruction::Xthl => (),
-            Instruction::Cpo => (),
+            Instruction::PopH => Self {
+                l: self.memory[self.sp as usize],
+                h: self.memory[self.sp.wrapping_add(1) as usize],
+                sp: self.sp.wrapping_add(2),
+                ..self
+            },
+            Instruction::Jpo => self,
+            Instruction::Xthl => self,
+            Instruction::Cpo => self,
             // 0xE5
             Instruction::PushH => {
-                let (high, low) = (state.h, state.l);
-                state = state.pushing(high, low);
+                let (high, low) = (self.h, self.l);
+                self.pushing(high, low)
             }
             // 0xE6
             Instruction::Ani => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
+                let (new_state, byte) = self.reading_next_byte();
+                let new_state = Self {
+                    a: new_state.a & byte,
+                    ..new_state
+                };
 
-                state.a = state.a & byte;
-                state = state.setting_logic_flags_a();
+                new_state.setting_logic_flags_a()
             }
-            Instruction::Rst4 => (),
-            Instruction::Rpe => (),
-            Instruction::Pchl => (),
-            Instruction::Jpe => (),
+            Instruction::Rst4 => self,
+            Instruction::Rpe => self,
+            Instruction::Pchl => self,
+            Instruction::Jpe => self,
+
             // 0xEB
-            Instruction::Xchg => {
-                let saved_h = state.h;
-                let saved_l = state.l;
-                state.h = state.d;
-                state.l = state.e;
-                state.d = saved_h;
-                state.e = saved_l;
-            }
-            Instruction::Cpe => (),
-            Instruction::Xri => (),
-            Instruction::Rst5 => (),
-            Instruction::Rp => (),
+            Instruction::Xchg => Self {
+                h: self.d,
+                l: self.e,
+                d: self.h,
+                e: self.l,
+                ..self
+            },
+
+            Instruction::Cpe => self,
+            Instruction::Xri => self,
+            Instruction::Rst5 => self,
+            Instruction::Rp => self,
             // 0xF1
-            Instruction::PopPsw => {
-                state.a = state.memory[state.sp.wrapping_add(1) as usize];
-                state.cc.bits = state.memory[state.sp as usize];
-                state.sp = state.sp.wrapping_add(2);
-            }
-            Instruction::Jp => (),
-            // 0xF3
-            Instruction::Di => {
-                state.interrupt_enabled = false;
-            }
-            Instruction::Cp => (),
+            Instruction::PopPsw => Self {
+                a: self.memory[self.sp.wrapping_add(1) as usize],
+                sp: self.sp.wrapping_add(2),
+                cc: ConditionCodes::from_bits_truncate(self.memory[self.sp as usize]),
+                ..self
+            },
+            Instruction::Jp => self,
+
+            Instruction::Cp => self,
+
             Instruction::PushPsw => {
-                let (high, low) = (state.a, state.cc.bits);
-                state = state.pushing(high, low);
+                let (high, low) = (self.a, self.cc.bits);
+
+                self.pushing(high, low)
             }
-            Instruction::Ori => (),
-            Instruction::Rst6 => (),
-            Instruction::Rm => (),
-            Instruction::Sphl => (),
-            Instruction::Jm => (),
+
+            Instruction::Ori => self,
+            Instruction::Rst6 => self,
+            Instruction::Rm => self,
+            Instruction::Sphl => self,
+            Instruction::Jm => self,
+
+            // 0xF3
+            Instruction::Di => Self {
+                interrupt_enabled: false,
+                ..self
+            },
             // 0xFB
-            Instruction::Ei => {
-                state.interrupt_enabled = true;
-            }
-            Instruction::Cm => (),
+            Instruction::Ei => Self {
+                interrupt_enabled: true,
+                ..self
+            },
+
+            Instruction::Cm => self,
             Instruction::Cpi => {
-                let (new_state, byte) = state.reading_next_byte();
-                state = new_state;
+                let (new_state, byte) = self.reading_next_byte();
 
-                let res = state.a.wrapping_sub(byte);
+                let res = new_state.a.wrapping_sub(byte);
+                let mut cc = new_state.cc.clone();
+                cc.set(ConditionCodes::Z, res == 0);
+                cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
+                cc.set(ConditionCodes::P, parity(res));
+                cc.set(ConditionCodes::CY, new_state.a < byte);
 
-                state.cc.set(ConditionCodes::Z, res == 0);
-                state.cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
-                state.cc.set(ConditionCodes::P, parity(res));
-                state.cc.set(ConditionCodes::CY, state.a < byte);
+                Self { cc, ..new_state }
             }
-            Instruction::Rst7 => (),
+            Instruction::Rst7 => self,
         }
-
-        state
     }
 
     pub fn evaluating_next(self) -> Self {
