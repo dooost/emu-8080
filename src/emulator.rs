@@ -124,25 +124,48 @@ impl State8080 /*<'a>*/ {
         (state, pair)
     }
 
-    fn setting_logic_flags_a(self) -> Self {
+    fn setting_flag(self, flag: ConditionCodes, value: bool) -> Self {
         let mut state = self;
-
-        // Based on data book AC and CY should be cleared
-        state.cc.remove(ConditionCodes::CY);
-        state.cc.remove(ConditionCodes::AC);
-
-        state.cc.set(ConditionCodes::Z, state.a == 0);
-        state.cc.set(ConditionCodes::S, (state.a & 0x80) == 0x80);
-        state.cc.set(ConditionCodes::P, parity(state.a));
-
+        state.cc.set(flag, value);
         state
     }
 
-    fn setting_ac_flag_a(self) -> Self {
-        let mut state = self;
-        state.cc.set(ConditionCodes::AC, state.a > 0x0F);
+    fn setting_logic_flags_a(self) -> Self {
+        let a = self.a;
 
-        state
+        self.setting_z_flag(a)
+            .setting_s_flag(a)
+            .setting_p_flag(a)
+            .setting_flag(ConditionCodes::CY, false)
+            .setting_flag(ConditionCodes::AC, false)
+    }
+
+    fn setting_ac_flag_a(self) -> Self {
+        let a = self.a;
+        self.setting_ac_flag(a)
+    }
+
+    fn setting_z_flag(self, value: u8) -> Self {
+        self.setting_flag(ConditionCodes::Z, value == 0)
+    }
+
+    fn setting_s_flag(self, value: u8) -> Self {
+        self.setting_flag(ConditionCodes::S, (value & 0x80) == 0x80)
+    }
+
+    fn setting_p_flag(self, value: u8) -> Self {
+        self.setting_flag(ConditionCodes::P, parity(value))
+    }
+
+    fn setting_ac_flag(self, value: u8) -> Self {
+        self.setting_flag(ConditionCodes::AC, value > 0x0f)
+    }
+
+    fn setting_zspac_flags(self, value: u8) -> Self {
+        self.setting_z_flag(value)
+            .setting_s_flag(value)
+            .setting_p_flag(value)
+            .setting_ac_flag(value)
     }
 
     fn pushing(self, high: u8, low: u8) -> Self {
@@ -280,25 +303,15 @@ impl State8080 /*<'a>*/ {
             // 0x05
             Instruction::DcrB => {
                 let res = self.b.wrapping_sub(1);
-                let mut cc = self.cc.clone();
-                cc.set(ConditionCodes::Z, res == 0);
-                cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
-                cc.set(ConditionCodes::P, parity(res));
-                cc.set(ConditionCodes::AC, res > 0x0f);
-
-                Self { b: res, cc, ..self }
+                let new_state = Self { b: res, ..self };
+                new_state.setting_zspac_flags(res)
             }
 
             // 0x0D
             Instruction::DcrC => {
                 let res = self.c.wrapping_sub(1);
-                let mut cc = self.cc.clone();
-                cc.set(ConditionCodes::Z, res == 0);
-                cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
-                cc.set(ConditionCodes::P, parity(res));
-                cc.set(ConditionCodes::AC, res > 0x0f);
-
-                Self { c: res, cc, ..self }
+                let new_state = Self { c: res, ..self };
+                new_state.setting_zspac_flags(res)
             }
 
             Instruction::StaxB => self,
