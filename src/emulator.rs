@@ -262,6 +262,38 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn setting_a(self, a: u8) -> Self {
+        Self { a, ..self }
+    }
+
+    fn setting_b(self, b: u8) -> Self {
+        Self { b, ..self }
+    }
+
+    fn setting_c(self, c: u8) -> Self {
+        Self { c, ..self }
+    }
+
+    fn setting_d(self, d: u8) -> Self {
+        Self { d, ..self }
+    }
+
+    fn setting_e(self, e: u8) -> Self {
+        Self { e, ..self }
+    }
+
+    fn setting_h(self, h: u8) -> Self {
+        Self { h, ..self }
+    }
+
+    fn setting_l(self, l: u8) -> Self {
+        Self { l, ..self }
+    }
+
+    fn setting_sp(self, sp: u16) -> Self {
+        Self { sp, ..self }
+    }
+
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
         #[cfg(feature = "logging")]
         #[cfg(not(feature = "diagsupport"))]
@@ -294,24 +326,21 @@ impl State8080 /*<'a>*/ {
             Instruction::LxiSp => {
                 let (new_state, pair) = self.reading_next_pair();
 
-                Self {
-                    sp: pair.into(),
-                    ..new_state
-                }
+                new_state.setting_sp(pair.into())
             }
 
             // 0x05
             Instruction::DcrB => {
                 let res = self.b.wrapping_sub(1);
-                let new_state = Self { b: res, ..self };
-                new_state.setting_zspac_flags(res)
+
+                self.setting_b(res).setting_zspac_flags(res)
             }
 
             // 0x0D
             Instruction::DcrC => {
                 let res = self.c.wrapping_sub(1);
-                let new_state = Self { c: res, ..self };
-                new_state.setting_zspac_flags(res)
+
+                self.setting_c(res).setting_zspac_flags(res)
             }
 
             Instruction::StaxB => self,
@@ -322,52 +351,54 @@ impl State8080 /*<'a>*/ {
             Instruction::MviA => {
                 let (new_state, byte) = self.reading_next_byte();
 
-                Self {
-                    a: byte,
-                    ..new_state
-                }
+                new_state.setting_a(byte)
             }
             // 0x06
             Instruction::MviB => {
                 let (new_state, byte) = self.reading_next_byte();
 
-                Self {
-                    b: byte,
-                    ..new_state
-                }
+                new_state.setting_b(byte)
             }
             // 0x0E
             Instruction::MviC => {
                 let (new_state, byte) = self.reading_next_byte();
 
-                Self {
-                    c: byte,
-                    ..new_state
-                }
+                new_state.setting_c(byte)
             }
-            Instruction::MviD => self,
-            Instruction::MviE => self,
+            // 0x16
+            Instruction::MviD => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_d(byte)
+            }
+            // 0x1E
+            Instruction::MviE => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_e(byte)
+            }
             // 0x26
             Instruction::MviH => {
                 let (new_state, byte) = self.reading_next_byte();
 
-                Self {
-                    h: byte,
-                    ..new_state
-                }
+                new_state.setting_h(byte)
             }
-            Instruction::MviL => self,
+            // 0x2E
+            Instruction::MviL => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_l(byte)
+            }
             // 0x36
             Instruction::MviM => {
-                let (mut new_state, byte) = self.reading_next_byte();
+                let (new_state, byte) = self.reading_next_byte();
                 let offset: u16 = BytePair {
                     high: new_state.h,
                     low: new_state.l,
                 }
                 .into();
-                new_state.memory[offset as usize] = byte;
 
-                new_state
+                new_state.setting_memory_at(byte, offset)
             }
 
             // 0x09
