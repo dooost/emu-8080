@@ -356,12 +356,48 @@ impl State8080 /*<'a>*/ {
 
                 self.setting_b(res).setting_zspac_flags(res)
             }
-
             // 0x0D
             Instruction::DcrC => {
                 let res = self.c.wrapping_sub(1);
 
                 self.setting_c(res).setting_zspac_flags(res)
+            }
+            // 0x15
+            Instruction::DcrD => {
+                let res = self.d.wrapping_sub(1);
+
+                self.setting_d(res).setting_zspac_flags(res)
+            }
+            // 0x1D
+            Instruction::DcrE => {
+                let res = self.e.wrapping_sub(1);
+
+                self.setting_e(res).setting_zspac_flags(res)
+            }
+            // 0x25
+            Instruction::DcrH => {
+                let res = self.h.wrapping_sub(1);
+
+                self.setting_h(res).setting_zspac_flags(res)
+            }
+            // 0x2D
+            Instruction::DcrL => {
+                let res = self.l.wrapping_sub(1);
+
+                self.setting_l(res).setting_zspac_flags(res)
+            }
+            // 0x35
+            Instruction::DcrM => {
+                let offset: u16 = self.hl().into();
+                let res = self.memory[offset as usize].wrapping_sub(1);
+
+                self.setting_memory_at(res, offset).setting_zspac_flags(res)
+            }
+            // 0x3D
+            Instruction::DcrA => {
+                let res = self.a.wrapping_sub(1);
+
+                self.setting_a(res).setting_zspac_flags(res)
             }
 
             Instruction::StaxB => self,
@@ -492,7 +528,6 @@ impl State8080 /*<'a>*/ {
                 }
             }
             Instruction::InrD => self,
-            Instruction::DcrD => self,
             Instruction::Ral => self,
 
             //0x1A
@@ -510,7 +545,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::DcxD => self,
             Instruction::InrE => self,
-            Instruction::DcrE => self,
             // 0x1F
             Instruction::Rar => {
                 let x = self.a;
@@ -536,13 +570,11 @@ impl State8080 /*<'a>*/ {
                 }
             }
             Instruction::InrH => self,
-            Instruction::DcrH => self,
             Instruction::Daa => self,
 
             Instruction::Lhld => self,
             Instruction::DcxH => self,
             Instruction::InrL => self,
-            Instruction::DcrL => self,
             // 0x2F
             Instruction::Cma => Self { a: !self.a, ..self },
 
@@ -555,7 +587,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::InxSp => self,
             Instruction::InrM => self,
-            Instruction::DcrM => self,
 
             Instruction::Stc => self,
             // 0x3A
@@ -569,7 +600,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::DcxSp => self,
             Instruction::InrA => self,
-            Instruction::DcrA => self,
 
             Instruction::Cmc => self,
             Instruction::MovBB => self,
