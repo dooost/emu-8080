@@ -105,6 +105,27 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn bc(&self) -> BytePair {
+        BytePair {
+            high: self.b,
+            low: self.c,
+        }
+    }
+
+    fn de(&self) -> BytePair {
+        BytePair {
+            high: self.d,
+            low: self.e,
+        }
+    }
+
+    fn hl(&self) -> BytePair {
+        BytePair {
+            high: self.h,
+            low: self.l,
+        }
+    }
+
     fn reading_next_byte(self) -> (Self, u8) {
         let mut state = self;
         let byte = state.memory[state.pc as usize];
@@ -403,23 +424,42 @@ impl State8080 /*<'a>*/ {
 
             // 0x09
             Instruction::DadB => {
-                let hl: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                let bc: u16 = BytePair {
-                    high: self.b,
-                    low: self.c,
-                }
-                .into();
+                let hl: u16 = self.hl().into();
+                let bc: u16 = self.bc().into();
                 let res = (hl as u32).wrapping_add(bc as u32);
                 let res_pair = BytePair::from(res as u16);
                 let new_state = self.setting_hl(res_pair);
 
-                let mut cc = new_state.cc.clone();
-                cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
-                Self { cc, ..new_state }
+                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+            // 0x19
+            Instruction::DadD => {
+                let hl: u16 = self.hl().into();
+                let de: u16 = self.de().into();
+                let res = (hl as u32).wrapping_add(de as u32);
+                let res_pair = BytePair::from(res as u16);
+                let new_state = self.setting_hl(res_pair);
+
+                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+            // 0x29
+            Instruction::DadH => {
+                let hl: u16 = self.hl().into();
+                let res = (hl as u32).wrapping_add(hl as u32);
+                let res_pair = BytePair::from(res as u16);
+                let new_state = self.setting_hl(res_pair);
+
+                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+            // 0x39
+            Instruction::DadSp => {
+                let hl: u16 = self.hl().into();
+                let sp = self.sp;
+                let res = (hl as u32).wrapping_add(sp as u32);
+                let res_pair = BytePair::from(res as u16);
+                let new_state = self.setting_hl(res_pair);
+
+                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
             }
 
             Instruction::Rlc => self,
@@ -454,26 +494,7 @@ impl State8080 /*<'a>*/ {
             Instruction::InrD => self,
             Instruction::DcrD => self,
             Instruction::Ral => self,
-            // 0x19
-            Instruction::DadD => {
-                let hl: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                let de: u16 = BytePair {
-                    high: self.d,
-                    low: self.e,
-                }
-                .into();
-                let res = (hl as u32).wrapping_add(de as u32);
-                let res_pair = BytePair::from(res as u16);
-                let new_state = self.setting_hl(res_pair);
 
-                let mut cc = new_state.cc.clone();
-                cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
-                Self { cc, ..new_state }
-            }
             //0x1A
             Instruction::LdaxD => {
                 let offset: u16 = BytePair {
@@ -517,21 +538,7 @@ impl State8080 /*<'a>*/ {
             Instruction::InrH => self,
             Instruction::DcrH => self,
             Instruction::Daa => self,
-            // 0x29
-            Instruction::DadH => {
-                let hl: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                let res = (hl as u32).wrapping_add(hl as u32);
-                let res_pair = BytePair::from(res as u16);
-                let new_state = self.setting_hl(res_pair);
 
-                let mut cc = new_state.cc.clone();
-                cc.set(ConditionCodes::CY, (res & 0xff00) != 0);
-                Self { cc, ..new_state }
-            }
             Instruction::Lhld => self,
             Instruction::DcxH => self,
             Instruction::InrL => self,
@@ -551,7 +558,6 @@ impl State8080 /*<'a>*/ {
             Instruction::DcrM => self,
 
             Instruction::Stc => self,
-            Instruction::DadSp => self,
             // 0x3A
             Instruction::Lda => {
                 let (new_state, pair) = self.reading_next_pair();
