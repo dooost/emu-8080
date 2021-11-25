@@ -323,7 +323,14 @@ impl State8080 /*<'a>*/ {
         // let state;
         match instruction {
             // 0x00
-            Instruction::Nop => self,
+            Instruction::Nop
+            | Instruction::Nop1 // 0x08
+            | Instruction::Nop2 // 0x10
+            | Instruction::Nop3 // 0x18
+            | Instruction::Nop4 // 0x20
+            | Instruction::Nop5 // 0x28
+            | Instruction::Nop6 // 0x30
+            | Instruction::Nop7 => self, // 0x38
 
             // 0x01
             Instruction::LxiB => {
