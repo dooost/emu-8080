@@ -372,6 +372,58 @@ impl State8080 /*<'a>*/ {
                 self.setting_memory_at(val, offset)
             }
 
+            // 0x03
+            Instruction::InxB => {
+                let c = self.c.wrapping_add(1);
+                let mut b: Option<u8> = None;
+                if c == 0 {
+                    b = Some(self.b.wrapping_add(1));
+                }
+
+                let pair = BytePair { 
+                    high: b.unwrap_or(self.b), 
+                    low: c 
+                };
+                
+                self.setting_bc(pair)
+            }
+            // 0x13
+            Instruction::InxD => {
+                let e = self.e.wrapping_add(1);
+                let mut d: Option<u8> = None;
+                if e == 0 {
+                    d = Some(self.d.wrapping_add(1));
+                }
+
+                let pair = BytePair { 
+                    high: d.unwrap_or(self.d), 
+                    low: e 
+                };
+
+                self.setting_de(pair)
+            }
+            // 0x23
+            Instruction::InxH => {
+                let l = self.l.wrapping_add(1);
+                let mut h: Option<u8> = None;
+                if l == 0 {
+                    h = Some(self.h.wrapping_add(1));
+                }
+
+                let pair = BytePair { 
+                    high: h.unwrap_or(self.h), 
+                    low: l 
+                };
+
+                self.setting_hl(pair)
+            }
+            // 0x33
+            Instruction::InxSp => {
+                let sp = self.sp.wrapping_add(1);
+                
+                self.setting_sp(sp)
+            }
+
             // 0x05
             Instruction::DcrB => {
                 let res = self.b.wrapping_sub(1);
@@ -422,7 +474,6 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_zspac_flags(res)
             }
 
-            Instruction::InxB => self,
             Instruction::InrB => self,
 
             // 0x3E
@@ -534,19 +585,6 @@ impl State8080 /*<'a>*/ {
                 Self { a, cc, ..self }
             }
 
-            // 0x13
-            Instruction::InxD => {
-                let e = self.e.wrapping_add(1);
-                let mut d: Option<u8> = None;
-                if e == 0 {
-                    d = Some(self.d.wrapping_add(1));
-                }
-                Self {
-                    e,
-                    d: d.unwrap_or(self.d),
-                    ..self
-                }
-            }
             Instruction::InrD => self,
             Instruction::Ral => self,
 
@@ -576,19 +614,7 @@ impl State8080 /*<'a>*/ {
             }
 
             Instruction::Shld => self,
-            // 0x23
-            Instruction::InxH => {
-                let l = self.l.wrapping_add(1);
-                let mut h: Option<u8> = None;
-                if l == 0 {
-                    h = Some(self.h.wrapping_add(1));
-                }
-                Self {
-                    l,
-                    h: h.unwrap_or(self.h),
-                    ..self
-                }
-            }
+
             Instruction::InrH => self,
             Instruction::Daa => self,
 
@@ -605,7 +631,6 @@ impl State8080 /*<'a>*/ {
                 let byte = new_state.a;
                 new_state.setting_memory_at(byte, offset)
             }
-            Instruction::InxSp => self,
             Instruction::InrM => self,
 
             Instruction::Stc => self,
