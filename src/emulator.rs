@@ -357,6 +357,21 @@ impl State8080 /*<'a>*/ {
                 new_state.setting_sp(pair.into())
             }
 
+            // 0x02
+            Instruction::StaxB => {
+                let offset: u16 = self.bc().into();
+                let val = self.a;
+
+                self.setting_memory_at(val, offset)
+            }
+            // 0x12
+            Instruction::StaxD => {
+                let offset: u16 = self.de().into();
+                let val = self.a;
+                
+                self.setting_memory_at(val, offset)
+            }
+
             // 0x05
             Instruction::DcrB => {
                 let res = self.b.wrapping_sub(1);
@@ -407,7 +422,6 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_zspac_flags(res)
             }
 
-            Instruction::StaxB => self,
             Instruction::InxB => self,
             Instruction::InrB => self,
 
@@ -520,7 +534,6 @@ impl State8080 /*<'a>*/ {
                 Self { a, cc, ..self }
             }
 
-            Instruction::StaxD => self,
             // 0x13
             Instruction::InxD => {
                 let e = self.e.wrapping_add(1);
