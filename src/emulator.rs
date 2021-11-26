@@ -384,7 +384,7 @@ impl State8080 /*<'a>*/ {
                     high: b.unwrap_or(self.b), 
                     low: c 
                 };
-                
+
                 self.setting_bc(pair)
             }
             // 0x13
@@ -422,6 +422,56 @@ impl State8080 /*<'a>*/ {
                 let sp = self.sp.wrapping_add(1);
                 
                 self.setting_sp(sp)
+            }
+
+            // 0x04
+            Instruction::InrB => {
+                let res = self.b.wrapping_add(1);
+
+                self.setting_b(res).setting_zspac_flags(res)
+            }
+            // 0x0C
+            Instruction::InrC => {
+                let res = self.c.wrapping_add(1);
+
+                self.setting_c(res).setting_zspac_flags(res)
+            }
+            // 0x14
+            Instruction::InrD => {
+                let res = self.d.wrapping_add(1);
+
+                self.setting_d(res).setting_zspac_flags(res)
+            }
+            // 0x1C
+            Instruction::InrE => {
+                let res = self.e.wrapping_add(1);
+
+                self.setting_e(res).setting_zspac_flags(res)
+            }
+            // 0x24
+            Instruction::InrH => {
+                let res = self.h.wrapping_add(1);
+
+                self.setting_h(res).setting_zspac_flags(res)
+            }
+            // 0x2C
+            Instruction::InrL => {
+                let res = self.l.wrapping_add(1);
+
+                self.setting_l(res).setting_zspac_flags(res)
+            }
+            // 0x34
+            Instruction::InrM => {
+                let offset: u16 = self.hl().into();
+                let res = self.memory[offset as usize].wrapping_add(1);
+
+                self.setting_memory_at(res, offset).setting_zspac_flags(res)
+            }
+            // 0x3C
+            Instruction::InrA => {
+                let res = self.a.wrapping_add(1);
+
+                self.setting_a(res).setting_zspac_flags(res)
             }
 
             // 0x05
@@ -473,8 +523,6 @@ impl State8080 /*<'a>*/ {
 
                 self.setting_a(res).setting_zspac_flags(res)
             }
-
-            Instruction::InrB => self,
 
             // 0x3E
             Instruction::MviA => {
@@ -574,7 +622,6 @@ impl State8080 /*<'a>*/ {
 
             Instruction::LdaxB => self,
             Instruction::DcxB => self,
-            Instruction::InrC => self,
 
             // 0x0F
             Instruction::Rrc => {
@@ -585,7 +632,6 @@ impl State8080 /*<'a>*/ {
                 Self { a, cc, ..self }
             }
 
-            Instruction::InrD => self,
             Instruction::Ral => self,
 
             //0x1A
@@ -602,7 +648,6 @@ impl State8080 /*<'a>*/ {
                 }
             }
             Instruction::DcxD => self,
-            Instruction::InrE => self,
             // 0x1F
             Instruction::Rar => {
                 let x = self.a;
@@ -615,12 +660,10 @@ impl State8080 /*<'a>*/ {
 
             Instruction::Shld => self,
 
-            Instruction::InrH => self,
             Instruction::Daa => self,
 
             Instruction::Lhld => self,
             Instruction::DcxH => self,
-            Instruction::InrL => self,
             // 0x2F
             Instruction::Cma => Self { a: !self.a, ..self },
 
@@ -631,7 +674,6 @@ impl State8080 /*<'a>*/ {
                 let byte = new_state.a;
                 new_state.setting_memory_at(byte, offset)
             }
-            Instruction::InrM => self,
 
             Instruction::Stc => self,
             // 0x3A
@@ -644,7 +686,6 @@ impl State8080 /*<'a>*/ {
                 }
             }
             Instruction::DcxSp => self,
-            Instruction::InrA => self,
 
             Instruction::Cmc => self,
             Instruction::MovBB => self,
