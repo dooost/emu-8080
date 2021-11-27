@@ -572,7 +572,6 @@ impl State8080 /*<'a>*/ {
             }
             // 0x86
             Instruction::AddM => {
-                let mut cc = self.cc.clone();
                 let address: u16 = BytePair {
                     low: self.l,
                     high: self.h,
@@ -582,12 +581,9 @@ impl State8080 /*<'a>*/ {
                 let res_precise =
                     (self.a as u16).wrapping_add(self.memory[address as usize] as u16);
                 let res = (res_precise & 0xff) as u8;
-                cc.set(ConditionCodes::Z, res == 0);
-                cc.set(ConditionCodes::S, res & 0x80 != 0);
-                cc.set(ConditionCodes::P, parity(res));
-                cc.set(ConditionCodes::CY, res_precise > 0xff);
-
-                Self { a: res, cc, ..self }
+                
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
             }
             // 0x87
             Instruction::AddA => {
@@ -597,6 +593,121 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res)
                     .setting_arith_flags(res_precise)
             }
+
+            // 0xC6
+            Instruction::Adi => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                let res_precise = (new_state.a as u16).wrapping_add(byte as u16);
+                let res = res_precise as u8;
+
+                new_state.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+
+            // 0x88
+            Instruction::AdcB => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.b as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x89
+            Instruction::AdcC => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.c as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x8a
+            Instruction::AdcD => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.d as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x8b
+            Instruction::AdcE => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.e as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x8c
+            Instruction::AdcH => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.h as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x8d
+            Instruction::AdcL => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.l as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x8e
+            Instruction::AdcM => {
+                let address: u16 = BytePair {
+                    low: self.l,
+                    high: self.h,
+                }
+                .into();
+
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.memory[address as usize] as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = (res_precise & 0xff) as u8;
+                
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x8f
+            Instruction::AdcA => {
+                let res_precise = (self.a as u16)
+                    .wrapping_add(self.a as u16)
+                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+
+            // 0xCE
+            Instruction::Aci => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                let res_precise = (new_state.a as u16)
+                    .wrapping_add(byte as u16)
+                    .wrapping_add(new_state.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                new_state.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+
+
+
+
 
             // 0x03
             Instruction::InxB => {
@@ -1009,14 +1120,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-            Instruction::AdcB => self,
-            Instruction::AdcC => self,
-            Instruction::AdcD => self,
-            Instruction::AdcE => self,
-            Instruction::AdcH => self,
-            Instruction::AdcL => self,
-            Instruction::AdcM => self,
-            Instruction::AdcA => self,
             Instruction::SubB => self,
             Instruction::SubC => self,
             Instruction::SubD => self,
@@ -1116,24 +1219,7 @@ impl State8080 /*<'a>*/ {
                 let (high, low) = (self.b, self.c);
                 self.pushing(high, low)
             }
-            // 0xC6
-            Instruction::Adi => {
-                let mut cc = self.cc.clone();
-                let (new_state, byte) = self.reading_next_byte();
 
-                let res_precise = (new_state.a as u16).wrapping_add(byte as u16);
-                let res = (res_precise & 0xff) as u8;
-                cc.set(ConditionCodes::Z, res == 0);
-                cc.set(ConditionCodes::S, res & 0x80 != 0);
-                cc.set(ConditionCodes::P, parity(res));
-                cc.set(ConditionCodes::CY, res_precise > 0xff);
-
-                Self {
-                    a: res,
-                    cc,
-                    ..new_state
-                }
-            }
             Instruction::Rst0 => self,
             Instruction::Rz => self,
             // 0xC9
@@ -1191,7 +1277,6 @@ impl State8080 /*<'a>*/ {
                         .setting_memory_at(return_pair.low, low_mem_addr)
                 }
             }
-            Instruction::Aci => self,
             Instruction::Rst1 => self,
             Instruction::Rnc => self,
             // 0xD1
