@@ -332,6 +332,63 @@ impl State8080 /*<'a>*/ {
             | Instruction::Nop6 // 0x30
             | Instruction::Nop7 => self, // 0x38
 
+
+            // Data Transfer Group
+
+            // 0x06
+            Instruction::MviB => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_b(byte)
+            }
+            // 0x0E
+            Instruction::MviC => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_c(byte)
+            }
+            // 0x16
+            Instruction::MviD => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_d(byte)
+            }
+            // 0x1E
+            Instruction::MviE => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_e(byte)
+            }
+            // 0x26
+            Instruction::MviH => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_h(byte)
+            }
+            // 0x2E
+            Instruction::MviL => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_l(byte)
+            }
+            // 0x36
+            Instruction::MviM => {
+                let (new_state, byte) = self.reading_next_byte();
+                let offset: u16 = BytePair {
+                    high: new_state.h,
+                    low: new_state.l,
+                }
+                .into();
+
+                new_state.setting_memory_at(byte, offset)
+            }
+            // 0x3E
+            Instruction::MviA => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_a(byte)
+            }
+            
             // 0x01
             Instruction::LxiB => {
                 let (new_state, byte_pair) = self.reading_next_pair();
@@ -371,6 +428,77 @@ impl State8080 /*<'a>*/ {
                 
                 self.setting_memory_at(val, offset)
             }
+            
+            // 0x0A
+            Instruction::LdaxB => {
+                let offset: u16 = BytePair {
+                    high: self.b,
+                    low: self.c,
+                }
+                .into();
+                let res = self.memory[offset as usize];
+                
+                self.setting_a(res)
+            }
+            // 0x1A
+            Instruction::LdaxD => {
+                let offset: u16 = BytePair {
+                    high: self.d,
+                    low: self.e,
+                }
+                .into();
+                let res = self.memory[offset as usize];
+
+                self.setting_a(res)
+            }
+
+            // 0x32
+            Instruction::Sta => {
+                let (new_state, pair) = self.reading_next_pair();
+                let offset: u16 = pair.into();
+                let byte = new_state.a;
+                new_state.setting_memory_at(byte, offset)
+            }
+            // 0x3A
+            Instruction::Lda => {
+                let (new_state, pair) = self.reading_next_pair();
+                let offset: u16 = pair.into();
+                let a = new_state.memory[offset as usize];
+
+                new_state.setting_a(a)
+            }
+
+            // 0x22
+            Instruction::Shld => {
+                let (new_state, pair) = self.reading_next_pair();
+                let offset: u16 = pair.into();
+                let l = new_state.l;
+                let h = new_state.h;
+
+                new_state.setting_memory_at(l, offset)
+                    .setting_memory_at(h, offset.wrapping_add(1))
+            }
+            // 0x2A
+            Instruction::Lhld => {
+                let (new_state, pair) = self.reading_next_pair();
+                let offset: u16 = pair.into();
+                let l = new_state.memory[offset as usize];
+                let h = new_state.memory[offset as usize + 1];
+
+                new_state.setting_l(l)
+                    .setting_h(h)
+            }
+
+            // 0xEB
+            Instruction::Xchg => Self {
+                h: self.d,
+                l: self.e,
+                d: self.h,
+                e: self.l,
+                ..self
+            },
+
+
 
             // 0x03
             Instruction::InxB => {
@@ -524,66 +652,38 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_zspac_flags(res)
             }
 
-            // 0x06
-            Instruction::MviB => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_b(byte)
-            }
-            // 0x0E
-            Instruction::MviC => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_c(byte)
-            }
-            // 0x16
-            Instruction::MviD => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_d(byte)
-            }
-            // 0x1E
-            Instruction::MviE => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_e(byte)
-            }
-            // 0x26
-            Instruction::MviH => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_h(byte)
-            }
-            // 0x2E
-            Instruction::MviL => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_l(byte)
-            }
-            // 0x36
-            Instruction::MviM => {
-                let (new_state, byte) = self.reading_next_byte();
-                let offset: u16 = BytePair {
-                    high: new_state.h,
-                    low: new_state.l,
-                }
-                .into();
-
-                new_state.setting_memory_at(byte, offset)
-            }
-            // 0x3E
-            Instruction::MviA => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_a(byte)
-            }
-
             // 0x07
             Instruction::Rlc => {
                 let x = self.a;
                 let a = ((x & 0x80) >> 7) | (x << 1);
                 self.setting_a(a)
                     .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            }
+            // 0x0F
+            Instruction::Rrc => {
+                let x = self.a;
+                let a = ((x & 1) << 7) | (x >> 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
+            }
+            // 0x17
+            Instruction::Ral => {
+                let x = self.a;
+                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
+                let a = ((carry_u8 & 1) >> 7) | (x << 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            }
+            // 0x1F
+            Instruction::Rar => {
+                let x = self.a;
+                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
+                let a = ((carry_u8 & 1) << 7) | (x >> 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
             }
 
             // 0x09
@@ -624,29 +724,6 @@ impl State8080 /*<'a>*/ {
                 let new_state = self.setting_hl(res_pair);
 
                 new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
-            }
-
-            // 0x0A
-            Instruction::LdaxB => {
-                let offset: u16 = BytePair {
-                    high: self.b,
-                    low: self.c,
-                }
-                .into();
-                let res = self.memory[offset as usize];
-                
-                self.setting_a(res)
-            }
-            // 0x1A
-            Instruction::LdaxD => {
-                let offset: u16 = BytePair {
-                    high: self.d,
-                    low: self.e,
-                }
-                .into();
-                let res = self.memory[offset as usize];
-
-                self.setting_a(res)
             }
 
             // 0x0B
@@ -701,59 +778,15 @@ impl State8080 /*<'a>*/ {
                 self.setting_sp(sp)
             }
 
-            // 0x0F
-            Instruction::Rrc => {
-                let x = self.a;
-                let a = ((x & 1) << 7) | (x >> 1);
-
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
-            }
-            // 0x17
-            Instruction::Ral => {
-                let x = self.a;
-                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let a = ((carry_u8 & 1) >> 7) | (x << 1);
-
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
-            }
-            // 0x1F
-            Instruction::Rar => {
-                let x = self.a;
-                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let a = ((carry_u8 & 1) << 7) | (x >> 1);
-
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
-            }
-
-            Instruction::Shld => self,
+            
 
             Instruction::Daa => self,
 
-            Instruction::Lhld => self,
+            
             // 0x2F
             Instruction::Cma => Self { a: !self.a, ..self },
 
-            // 0x32
-            Instruction::Sta => {
-                let (new_state, pair) = self.reading_next_pair();
-                let offset: u16 = pair.into();
-                let byte = new_state.a;
-                new_state.setting_memory_at(byte, offset)
-            }
-
             Instruction::Stc => self,
-            // 0x3A
-            Instruction::Lda => {
-                let (new_state, pair) = self.reading_next_pair();
-                let offset: u16 = pair.into();
-                Self {
-                    a: new_state.memory[offset as usize],
-                    ..new_state
-                }
-            }
 
             Instruction::Cmc => self,
             Instruction::MovBB => self,
@@ -1162,15 +1195,6 @@ impl State8080 /*<'a>*/ {
             Instruction::Rpe => self,
             Instruction::Pchl => self,
             Instruction::Jpe => self,
-
-            // 0xEB
-            Instruction::Xchg => Self {
-                h: self.d,
-                l: self.e,
-                d: self.h,
-                e: self.l,
-                ..self
-            },
 
             Instruction::Cpe => self,
             Instruction::Xri => self,
