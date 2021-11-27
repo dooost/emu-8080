@@ -705,7 +705,188 @@ impl State8080 /*<'a>*/ {
                     .setting_arith_flags(res_precise)
             }
 
+            // 0x90
+            Instruction::SubB => {
+                let res_precise = (self.a as u16).wrapping_sub(self.b as u16);
+                let res = res_precise as u8;
 
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x91
+            Instruction::SubC => {
+                let res_precise = (self.a as u16).wrapping_sub(self.c as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x92
+            Instruction::SubD => {
+                let res_precise = (self.a as u16).wrapping_sub(self.d as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x93
+            Instruction::SubE => {
+                let res_precise = (self.a as u16).wrapping_sub(self.e as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x94
+            Instruction::SubH => {
+                let res_precise = (self.a as u16).wrapping_sub(self.h as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x95
+            Instruction::SubL => {
+                let res_precise = (self.a as u16).wrapping_sub(self.l as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x96
+            Instruction::SubM => {
+                let address: u16 = BytePair {
+                    low: self.l,
+                    high: self.h,
+                }
+                .into();
+
+                let res_precise =
+                    (self.a as u16).wrapping_sub(self.memory[address as usize] as u16);
+                let res = (res_precise & 0xff) as u8;
+                
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x97
+            Instruction::SubA => {
+                let res_precise = (self.a as u16).wrapping_sub(self.a as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+
+            // 0xD6
+            Instruction::Sui => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                let res_precise = (new_state.a as u16).wrapping_sub(byte as u16);
+                let res = res_precise as u8;
+
+                new_state.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+
+            // 0x98
+            Instruction::SbbB => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.b as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x99
+            Instruction::SbbC => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.c as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x9a
+            Instruction::SbbD => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.d as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x9b
+            Instruction::SbbE => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.e as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x9c
+            Instruction::SbbH => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.h as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x9d
+            Instruction::SbbL => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.l as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x9e
+            Instruction::SbbM => {
+                let address: u16 = BytePair {
+                    low: self.l,
+                    high: self.h,
+                }
+                .into();
+
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.memory[address as usize] as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = (res_precise & 0xff) as u8;
+                
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+            // 0x9f
+            Instruction::SbbA => {
+                let res_precise = (self.a as u16)
+                    .wrapping_sub(self.a as u16)
+                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                self.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
+
+            // 0xDE
+            Instruction::Sbi => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                let res_precise = (new_state.a as u16)
+                    .wrapping_sub(byte as u16)
+                    .wrapping_sub(new_state.cc.contains(ConditionCodes::CY) as u16);
+                let res = res_precise as u8;
+
+                new_state.setting_a(res)
+                    .setting_arith_flags(res_precise)
+            }
 
 
 
@@ -1120,22 +1301,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-            Instruction::SubB => self,
-            Instruction::SubC => self,
-            Instruction::SubD => self,
-            Instruction::SubE => self,
-            Instruction::SubH => self,
-            Instruction::SubL => self,
-            Instruction::SubM => self,
-            Instruction::SubA => self,
-            Instruction::SbbB => self,
-            Instruction::SbbC => self,
-            Instruction::SbbD => self,
-            Instruction::SbbE => self,
-            Instruction::SbbH => self,
-            Instruction::SbbL => self,
-            Instruction::SbbM => self,
-            Instruction::SbbA => self,
             Instruction::AnaB => self,
             Instruction::AnaC => self,
             Instruction::AnaD => self,
@@ -1299,7 +1464,6 @@ impl State8080 /*<'a>*/ {
                 let (high, low) = (self.d, self.e);
                 self.pushing(high, low)
             }
-            Instruction::Sui => self,
             Instruction::Rst2 => self,
             Instruction::Rc => self,
             Instruction::Jc => self,
@@ -1310,7 +1474,7 @@ impl State8080 /*<'a>*/ {
                 // (state.input_handler.0)(b);
             }
             Instruction::Cc => self,
-            Instruction::Sbi => self,
+
             Instruction::Rst3 => self,
             Instruction::Rpo => self,
             // 0xE1
