@@ -524,12 +524,6 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_zspac_flags(res)
             }
 
-            // 0x3E
-            Instruction::MviA => {
-                let (new_state, byte) = self.reading_next_byte();
-
-                new_state.setting_a(byte)
-            }
             // 0x06
             Instruction::MviB => {
                 let (new_state, byte) = self.reading_next_byte();
@@ -577,6 +571,20 @@ impl State8080 /*<'a>*/ {
 
                 new_state.setting_memory_at(byte, offset)
             }
+            // 0x3E
+            Instruction::MviA => {
+                let (new_state, byte) = self.reading_next_byte();
+
+                new_state.setting_a(byte)
+            }
+
+            // 0x07
+            Instruction::Rlc => {
+                let x = self.a;
+                let a = ((x & 0x80) >> 7) | (x << 1);
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            }
 
             // 0x09
             Instruction::DadB => {
@@ -618,36 +626,92 @@ impl State8080 /*<'a>*/ {
                 new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
             }
 
-            Instruction::Rlc => self,
-
-            Instruction::LdaxB => self,
-            Instruction::DcxB => self,
-
-            // 0x0F
-            Instruction::Rrc => {
-                let x = self.a;
-                let mut cc = self.cc.clone();
-                let a = ((x & 1) << 7) | (x >> 1);
-                cc.set(ConditionCodes::CY, (x & 1) == 1);
-                Self { a, cc, ..self }
+            // 0x0A
+            Instruction::LdaxB => {
+                let offset: u16 = BytePair {
+                    high: self.b,
+                    low: self.c,
+                }
+                .into();
+                let res = self.memory[offset as usize];
+                
+                self.setting_a(res)
             }
-
-            Instruction::Ral => self,
-
-            //0x1A
+            // 0x1A
             Instruction::LdaxD => {
                 let offset: u16 = BytePair {
                     high: self.d,
                     low: self.e,
                 }
                 .into();
+                let res = self.memory[offset as usize];
 
-                Self {
-                    a: self.memory[offset as usize],
-                    ..self
-                }
+                self.setting_a(res)
             }
-            Instruction::DcxD => self,
+
+            // 0x0B
+            Instruction::DcxB => {
+                let c = self.c.wrapping_sub(1);
+                let mut b: Option<u8> = None;
+                if c == 0xff {
+                    b = Some(self.b.wrapping_sub(1));
+                }
+
+                let pair = BytePair { 
+                    high: b.unwrap_or(self.b), 
+                    low: c 
+                };
+
+                self.setting_bc(pair)
+            }
+            // 0x1B
+            Instruction::DcxD => {
+                let e = self.e.wrapping_sub(1);
+                let mut d: Option<u8> = None;
+                if e == 0xff {
+                    d = Some(self.d.wrapping_sub(1));
+                }
+
+                let pair = BytePair { 
+                    high: d.unwrap_or(self.d), 
+                    low: e
+                };
+
+                self.setting_de(pair)
+            }
+            // 0x2B
+            Instruction::DcxH => {
+                let l = self.l.wrapping_sub(1);
+                let mut h: Option<u8> = None;
+                if l == 0xff {
+                    h = Some(self.h.wrapping_sub(1));
+                }
+
+                let pair = BytePair { 
+                    high: h.unwrap_or(self.h), 
+                    low: l
+                };
+
+                self.setting_hl(pair)
+            }
+            // 0x3B
+            Instruction::DcxSp => {
+                let sp = self.sp.wrapping_sub(1);
+                
+                self.setting_sp(sp)
+            }
+
+            // 0x0F
+            Instruction::Rrc => {
+                let x = self.a;
+                let a = ((x & 1) << 7) | (x >> 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
+            }
+
+            Instruction::Ral => self,
+
             // 0x1F
             Instruction::Rar => {
                 let x = self.a;
@@ -663,7 +727,6 @@ impl State8080 /*<'a>*/ {
             Instruction::Daa => self,
 
             Instruction::Lhld => self,
-            Instruction::DcxH => self,
             // 0x2F
             Instruction::Cma => Self { a: !self.a, ..self },
 
@@ -685,7 +748,6 @@ impl State8080 /*<'a>*/ {
                     ..new_state
                 }
             }
-            Instruction::DcxSp => self,
 
             Instruction::Cmc => self,
             Instruction::MovBB => self,
