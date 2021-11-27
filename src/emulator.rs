@@ -709,17 +709,23 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(a)
                     .setting_flag(ConditionCodes::CY, (x & 1) == 1)
             }
+            // 0x17
+            Instruction::Ral => {
+                let x = self.a;
+                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
+                let a = ((carry_u8 & 1) >> 7) | (x << 1);
 
-            Instruction::Ral => self,
-
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            }
             // 0x1F
             Instruction::Rar => {
                 let x = self.a;
                 let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let mut cc = self.cc.clone();
                 let a = ((carry_u8 & 1) << 7) | (x >> 1);
-                cc.set(ConditionCodes::CY, (x & 1) == 1);
-                Self { a, cc, ..self }
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
             }
 
             Instruction::Shld => self,
