@@ -151,21 +151,6 @@ impl State8080 /*<'a>*/ {
         state
     }
 
-    fn setting_logic_flags_a(self) -> Self {
-        let a = self.a;
-
-        self.setting_z_flag(a)
-            .setting_s_flag(a)
-            .setting_p_flag(a)
-            .setting_flag(ConditionCodes::CY, false)
-            .setting_flag(ConditionCodes::AC, false)
-    }
-
-    fn setting_ac_flag_a(self) -> Self {
-        let a = self.a;
-        self.setting_ac_flag(a)
-    }
-
     fn setting_all_flags(self, value: u16) -> Self {
         self.setting_zspac_flags(value as u8)
             .setting_cy_flag(value)
@@ -1108,36 +1093,43 @@ impl State8080 /*<'a>*/ {
 
             // Logical Group
 
+            // 0xA0
             Instruction::AnaB => {
                 let res = self.a & self.b;
 
                 self.setting_a(res).setting_all_flags(res as u16)
             }
+            // 0xA1
             Instruction::AnaC => {
                 let res = self.a & self.c;
 
                 self.setting_a(res).setting_all_flags(res as u16)
             }
+            // 0xA2
             Instruction::AnaD => {
                 let res = self.a & self.d;
 
                 self.setting_a(res).setting_all_flags(res as u16)
             }
+            // 0xA3
             Instruction::AnaE => {
                 let res = self.a & self.e;
 
                 self.setting_a(res).setting_all_flags(res as u16)
             }
+            // 0xA4
             Instruction::AnaH => {
                 let res = self.a & self.h;
 
                 self.setting_a(res).setting_all_flags(res as u16)
             }
+            // 0xA5
             Instruction::AnaL => {
                 let res = self.a & self.l;
 
                 self.setting_a(res).setting_all_flags(res as u16)
             }
+            // 0xA6
             Instruction::AnaM => {
                 let offset: u16 = self.hl().into();
                 let m = self.memory[offset as usize];
@@ -1152,6 +1144,64 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_all_flags(res as u16)
             }
 
+            // 0xE6
+            Instruction::Ani => {
+                let (new_state, byte) = self.reading_next_byte();
+                let res = new_state.a & byte;
+
+                new_state.setting_a(res).setting_all_flags(res as u16)
+            }
+
+            // 0xA8
+            Instruction::XraB => {
+                let res = self.a ^ self.b;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xA9
+            Instruction::XraC => {
+                let res = self.a ^ self.c;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xAA
+            Instruction::XraD => {
+                let res = self.a ^ self.d;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xAB
+            Instruction::XraE => {
+                let res = self.a ^ self.e;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xAC
+            Instruction::XraH => {
+                let res = self.a ^ self.h;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xAD
+            Instruction::XraL => {
+                let res = self.a ^ self.l;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xAE
+            Instruction::XraM => {
+                let offset: u16 = self.hl().into();
+                let m = self.memory[offset as usize];
+                let res = self.a ^ m;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xAF
+            Instruction::XraA => {
+                let res = self.a ^ self.a;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
 
 
             // 0x07
@@ -1318,22 +1368,7 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-            Instruction::XraB => self,
-            Instruction::XraC => self,
-            Instruction::XraD => self,
-            Instruction::XraE => self,
-            Instruction::XraH => self,
-            Instruction::XraL => self,
-            Instruction::XraM => self,
-            // 0xAF
-            Instruction::XraA => {
-                let new_state = Self {
-                    a: self.a ^ self.a,
-                    ..self
-                };
 
-                new_state.setting_logic_flags_a()
-            }
             Instruction::OraB => self,
             Instruction::OraC => self,
             Instruction::OraD => self,
@@ -1455,7 +1490,7 @@ impl State8080 /*<'a>*/ {
             Instruction::Jnc => self,
             // 0xD3
             Instruction::Out => {
-                let (new_state, b) = self.reading_next_byte();
+                let (new_state, _b) = self.reading_next_byte();
                 new_state
                 // (state.output_handler.0)(b);
             }
@@ -1470,7 +1505,7 @@ impl State8080 /*<'a>*/ {
             Instruction::Jc => self,
             // 0xDB
             Instruction::In => {
-                let (new_state, b) = self.reading_next_byte();
+                let (new_state, _b) = self.reading_next_byte();
                 new_state
                 // (state.input_handler.0)(b);
             }
@@ -1493,16 +1528,7 @@ impl State8080 /*<'a>*/ {
                 let (high, low) = (self.h, self.l);
                 self.pushing(high, low)
             }
-            // 0xE6
-            Instruction::Ani => {
-                let (new_state, byte) = self.reading_next_byte();
-                let new_state = Self {
-                    a: new_state.a & byte,
-                    ..new_state
-                };
 
-                new_state.setting_logic_flags_a()
-            }
             Instruction::Rst4 => self,
             Instruction::Rpe => self,
             Instruction::Pchl => self,
