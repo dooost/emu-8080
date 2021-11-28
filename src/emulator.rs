@@ -1106,6 +1106,53 @@ impl State8080 /*<'a>*/ {
             }
 
 
+            // Logical Group
+
+            Instruction::AnaB => {
+                let res = self.a & self.b;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            Instruction::AnaC => {
+                let res = self.a & self.c;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            Instruction::AnaD => {
+                let res = self.a & self.d;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            Instruction::AnaE => {
+                let res = self.a & self.e;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            Instruction::AnaH => {
+                let res = self.a & self.h;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            Instruction::AnaL => {
+                let res = self.a & self.l;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            Instruction::AnaM => {
+                let offset: u16 = self.hl().into();
+                let m = self.memory[offset as usize];
+                let res = self.a & m;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xA7
+            Instruction::AnaA => {
+                let res = self.a & self.a;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+
+
 
             // 0x07
             Instruction::Rlc => {
@@ -1271,22 +1318,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-            Instruction::AnaB => self,
-            Instruction::AnaC => self,
-            Instruction::AnaD => self,
-            Instruction::AnaE => self,
-            Instruction::AnaH => self,
-            Instruction::AnaL => self,
-            Instruction::AnaM => self,
-            // 0xA7
-            Instruction::AnaA => {
-                let new_state = Self {
-                    a: self.a & self.a,
-                    ..self
-                };
-
-                new_state.setting_logic_flags_a().setting_ac_flag_a()
-            }
             Instruction::XraB => self,
             Instruction::XraC => self,
             Instruction::XraD => self,
