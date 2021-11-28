@@ -888,60 +888,6 @@ impl State8080 /*<'a>*/ {
                     .setting_arith_flags(res_precise)
             }
 
-
-
-            // 0x03
-            Instruction::InxB => {
-                let c = self.c.wrapping_add(1);
-                let mut b: Option<u8> = None;
-                if c == 0 {
-                    b = Some(self.b.wrapping_add(1));
-                }
-
-                let pair = BytePair { 
-                    high: b.unwrap_or(self.b), 
-                    low: c 
-                };
-
-                self.setting_bc(pair)
-            }
-            // 0x13
-            Instruction::InxD => {
-                let e = self.e.wrapping_add(1);
-                let mut d: Option<u8> = None;
-                if e == 0 {
-                    d = Some(self.d.wrapping_add(1));
-                }
-
-                let pair = BytePair { 
-                    high: d.unwrap_or(self.d), 
-                    low: e 
-                };
-
-                self.setting_de(pair)
-            }
-            // 0x23
-            Instruction::InxH => {
-                let l = self.l.wrapping_add(1);
-                let mut h: Option<u8> = None;
-                if l == 0 {
-                    h = Some(self.h.wrapping_add(1));
-                }
-
-                let pair = BytePair { 
-                    high: h.unwrap_or(self.h), 
-                    low: l 
-                };
-
-                self.setting_hl(pair)
-            }
-            // 0x33
-            Instruction::InxSp => {
-                let sp = self.sp.wrapping_add(1);
-                
-                self.setting_sp(sp)
-            }
-
             // 0x04
             Instruction::InrB => {
                 let res = self.b.wrapping_add(1);
@@ -1042,78 +988,56 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_zspac_flags(res)
             }
 
-            // 0x07
-            Instruction::Rlc => {
-                let x = self.a;
-                let a = ((x & 0x80) >> 7) | (x << 1);
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            // 0x03
+            Instruction::InxB => {
+                let c = self.c.wrapping_add(1);
+                let mut b: Option<u8> = None;
+                if c == 0 {
+                    b = Some(self.b.wrapping_add(1));
+                }
+
+                let pair = BytePair { 
+                    high: b.unwrap_or(self.b), 
+                    low: c 
+                };
+
+                self.setting_bc(pair)
             }
-            // 0x0F
-            Instruction::Rrc => {
-                let x = self.a;
-                let a = ((x & 1) << 7) | (x >> 1);
+            // 0x13
+            Instruction::InxD => {
+                let e = self.e.wrapping_add(1);
+                let mut d: Option<u8> = None;
+                if e == 0 {
+                    d = Some(self.d.wrapping_add(1));
+                }
 
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
+                let pair = BytePair { 
+                    high: d.unwrap_or(self.d), 
+                    low: e 
+                };
+
+                self.setting_de(pair)
             }
-            // 0x17
-            Instruction::Ral => {
-                let x = self.a;
-                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let a = ((carry_u8 & 1) >> 7) | (x << 1);
+            // 0x23
+            Instruction::InxH => {
+                let l = self.l.wrapping_add(1);
+                let mut h: Option<u8> = None;
+                if l == 0 {
+                    h = Some(self.h.wrapping_add(1));
+                }
 
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+                let pair = BytePair { 
+                    high: h.unwrap_or(self.h), 
+                    low: l 
+                };
+
+                self.setting_hl(pair)
             }
-            // 0x1F
-            Instruction::Rar => {
-                let x = self.a;
-                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let a = ((carry_u8 & 1) << 7) | (x >> 1);
-
-                self.setting_a(a)
-                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
-            }
-
-            // 0x09
-            Instruction::DadB => {
-                let hl: u16 = self.hl().into();
-                let bc: u16 = self.bc().into();
-                let res = (hl as u32).wrapping_add(bc as u32);
-                let res_pair = BytePair::from(res as u16);
-                let new_state = self.setting_hl(res_pair);
-
-                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
-            }
-            // 0x19
-            Instruction::DadD => {
-                let hl: u16 = self.hl().into();
-                let de: u16 = self.de().into();
-                let res = (hl as u32).wrapping_add(de as u32);
-                let res_pair = BytePair::from(res as u16);
-                let new_state = self.setting_hl(res_pair);
-
-                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
-            }
-            // 0x29
-            Instruction::DadH => {
-                let hl: u16 = self.hl().into();
-                let res = (hl as u32).wrapping_add(hl as u32);
-                let res_pair = BytePair::from(res as u16);
-                let new_state = self.setting_hl(res_pair);
-
-                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
-            }
-            // 0x39
-            Instruction::DadSp => {
-                let hl: u16 = self.hl().into();
-                let sp = self.sp;
-                let res = (hl as u32).wrapping_add(sp as u32);
-                let res_pair = BytePair::from(res as u16);
-                let new_state = self.setting_hl(res_pair);
-
-                new_state.setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            // 0x33
+            Instruction::InxSp => {
+                let sp = self.sp.wrapping_add(1);
+                
+                self.setting_sp(sp)
             }
 
             // 0x0B
@@ -1168,9 +1092,94 @@ impl State8080 /*<'a>*/ {
                 self.setting_sp(sp)
             }
 
-            
+            // 0x09
+            Instruction::DadB => {
+                let hl: u16 = self.hl().into();
+                let bc: u16 = self.bc().into();
+                let res = (hl as u32).wrapping_add(bc as u32);
+                let res_pair = BytePair::from(res as u16);
 
-            Instruction::Daa => self,
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+            // 0x19
+            Instruction::DadD => {
+                let hl: u16 = self.hl().into();
+                let de: u16 = self.de().into();
+                let res = (hl as u32).wrapping_add(de as u32);
+                let res_pair = BytePair::from(res as u16);
+
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+            // 0x29
+            Instruction::DadH => {
+                let hl: u16 = self.hl().into();
+                let res = (hl as u32).wrapping_add(hl as u32);
+                let res_pair = BytePair::from(res as u16);
+
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+            // 0x39
+            Instruction::DadSp => {
+                let hl: u16 = self.hl().into();
+                let sp = self.sp;
+                let res = (hl as u32).wrapping_add(sp as u32);
+                let res_pair = BytePair::from(res as u16);
+
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+            }
+
+            // 0x27
+            Instruction::Daa => {
+                let mut a: u16 = self.a as u16;
+
+                if a & 0xf > 9 {
+                    a += 6;
+                }
+
+                if a & 0xf0 > 0x90 {
+                    a += 0x60;
+                }
+                
+                // Not entirely sure about how flags should be set here
+                self.setting_a(a as u8).setting_arith_flags(a)
+            }
+
+
+
+            // 0x07
+            Instruction::Rlc => {
+                let x = self.a;
+                let a = ((x & 0x80) >> 7) | (x << 1);
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            }
+            // 0x0F
+            Instruction::Rrc => {
+                let x = self.a;
+                let a = ((x & 1) << 7) | (x >> 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
+            }
+            // 0x17
+            Instruction::Ral => {
+                let x = self.a;
+                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
+                let a = ((carry_u8 & 1) >> 7) | (x << 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
+            }
+            // 0x1F
+            Instruction::Rar => {
+                let x = self.a;
+                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
+                let a = ((carry_u8 & 1) << 7) | (x >> 1);
+
+                self.setting_a(a)
+                    .setting_flag(ConditionCodes::CY, (x & 1) == 1)
+            }
+
 
             
             // 0x2F
