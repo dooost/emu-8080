@@ -383,11 +383,7 @@ impl State8080 /*<'a>*/ {
             // 0x36
             Instruction::MviM => {
                 let (new_state, byte) = self.reading_next_byte();
-                let offset: u16 = BytePair {
-                    high: new_state.h,
-                    low: new_state.l,
-                }
-                .into();
+                let offset: u16 = new_state.hl().into();
 
                 new_state.setting_memory_at(byte, offset)
             }
@@ -440,22 +436,14 @@ impl State8080 /*<'a>*/ {
             
             // 0x0A
             Instruction::LdaxB => {
-                let offset: u16 = BytePair {
-                    high: self.b,
-                    low: self.c,
-                }
-                .into();
+                let offset: u16 = self.bc().into();
                 let res = self.memory[offset as usize];
                 
                 self.setting_a(res)
             }
             // 0x1A
             Instruction::LdaxD => {
-                let offset: u16 = BytePair {
-                    high: self.d,
-                    low: self.e,
-                }
-                .into();
+                let offset: u16 = self.de().into();
                 let res = self.memory[offset as usize];
 
                 self.setting_a(res)
@@ -561,11 +549,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x86
             Instruction::AddM => {
-                let address: u16 = BytePair {
-                    low: self.l,
-                    high: self.h,
-                }
-                .into();
+                let address: u16 = self.hl().into();
 
                 let res_precise =
                     (self.a as u16).wrapping_add(self.memory[address as usize] as u16);
@@ -656,11 +640,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x8e
             Instruction::AdcM => {
-                let address: u16 = BytePair {
-                    low: self.l,
-                    high: self.h,
-                }
-                .into();
+                let address: u16 = self.hl().into();
 
                 let res_precise = (self.a as u16)
                     .wrapping_add(self.memory[address as usize] as u16)
@@ -744,11 +724,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x96
             Instruction::SubM => {
-                let address: u16 = BytePair {
-                    low: self.l,
-                    high: self.h,
-                }
-                .into();
+                let address: u16 = self.hl().into();
 
                 let res_precise =
                     (self.a as u16).wrapping_sub(self.memory[address as usize] as u16);
@@ -839,11 +815,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x9e
             Instruction::SbbM => {
-                let address: u16 = BytePair {
-                    low: self.l,
-                    high: self.h,
-                }
-                .into();
+                let address: u16 = self.hl().into();
 
                 let res_precise = (self.a as u16)
                     .wrapping_sub(self.memory[address as usize] as u16)
