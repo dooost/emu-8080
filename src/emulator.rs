@@ -1203,6 +1203,14 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(res).setting_all_flags(res as u16)
             }
 
+            // 0xEE
+            Instruction::Xri => {
+                let (new_state, byte) = self.reading_next_byte();
+                let res = new_state.a ^ byte;
+
+                new_state.setting_a(res).setting_all_flags(res as u16)
+            }
+
 
             // 0x07
             Instruction::Rlc => {
@@ -1535,7 +1543,7 @@ impl State8080 /*<'a>*/ {
             Instruction::Jpe => self,
 
             Instruction::Cpe => self,
-            Instruction::Xri => self,
+            
             Instruction::Rst5 => self,
             Instruction::Rp => self,
             // 0xF1
