@@ -1211,6 +1211,65 @@ impl State8080 /*<'a>*/ {
                 new_state.setting_a(res).setting_all_flags(res as u16)
             }
 
+            // 0xB0
+            Instruction::OraB => {
+                let res = self.a | self.b;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB1
+            Instruction::OraC => {
+                let res = self.a | self.c;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB2
+            Instruction::OraD => {
+                let res = self.a | self.d;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB3
+            Instruction::OraE => {
+                let res = self.a | self.e;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB4
+            Instruction::OraH => {
+                let res = self.a | self.h;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB5
+            Instruction::OraL => {
+                let res = self.a | self.l;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB6
+            Instruction::OraM => {
+                let offset: u16 = self.hl().into();
+                let m = self.memory[offset as usize];
+                let res = self.a | m;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+            // 0xB7
+            Instruction::OraA => {
+                let res = self.a | self.a;
+
+                self.setting_a(res).setting_all_flags(res as u16)
+            }
+
+            // 0xF6
+            Instruction::Ori => {
+                let (new_state, byte) = self.reading_next_byte();
+                let res = new_state.a | byte;
+
+                new_state.setting_a(res).setting_all_flags(res as u16)
+            }
+
 
             // 0x07
             Instruction::Rlc => {
@@ -1377,14 +1436,6 @@ impl State8080 /*<'a>*/ {
             Instruction::MovAA => self,
 
 
-            Instruction::OraB => self,
-            Instruction::OraC => self,
-            Instruction::OraD => self,
-            Instruction::OraE => self,
-            Instruction::OraH => self,
-            Instruction::OraL => self,
-            Instruction::OraM => self,
-            Instruction::OraA => self,
             Instruction::CmpB => self,
             Instruction::CmpC => self,
             Instruction::CmpD => self,
@@ -1563,7 +1614,6 @@ impl State8080 /*<'a>*/ {
                 self.pushing(high, low)
             }
 
-            Instruction::Ori => self,
             Instruction::Rst6 => self,
             Instruction::Rm => self,
             Instruction::Sphl => self,
