@@ -166,20 +166,9 @@ impl State8080 /*<'a>*/ {
         self.setting_ac_flag(a)
     }
 
-    fn setting_logic_flags(self, value: u8) -> Self {
-        self.setting_z_flag(value)
-            .setting_s_flag(value)
-            .setting_p_flag(value)
-            .setting_flag(ConditionCodes::CY, false)
-            .setting_flag(ConditionCodes::AC, false)
-    }
-
-    fn setting_arith_flags(self, value: u16) -> Self {
-        self.setting_z_flag(value as u8)
-            .setting_s_flag(value as u8)
-            .setting_p_flag(value as u8)
+    fn setting_all_flags(self, value: u16) -> Self {
+        self.setting_zspac_flags(value as u8)
             .setting_cy_flag(value)
-            .setting_ac_flag(value as u8)
     }
 
     fn setting_z_flag(self, value: u8) -> Self {
@@ -528,7 +517,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x81
             Instruction::AddC => {
@@ -536,7 +525,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x82
             Instruction::AddD => {
@@ -544,7 +533,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x83
             Instruction::AddE => {
@@ -552,7 +541,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x84
             Instruction::AddH => {
@@ -560,7 +549,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x85
             Instruction::AddL => {
@@ -568,7 +557,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x86
             Instruction::AddM => {
@@ -583,7 +572,7 @@ impl State8080 /*<'a>*/ {
                 let res = (res_precise & 0xff) as u8;
                 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x87
             Instruction::AddA => {
@@ -591,7 +580,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0xC6
@@ -602,7 +591,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 new_state.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0x88
@@ -613,7 +602,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x89
             Instruction::AdcC => {
@@ -623,7 +612,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x8a
             Instruction::AdcD => {
@@ -633,7 +622,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x8b
             Instruction::AdcE => {
@@ -643,7 +632,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x8c
             Instruction::AdcH => {
@@ -653,7 +642,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x8d
             Instruction::AdcL => {
@@ -663,7 +652,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x8e
             Instruction::AdcM => {
@@ -679,7 +668,7 @@ impl State8080 /*<'a>*/ {
                 let res = (res_precise & 0xff) as u8;
                 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x8f
             Instruction::AdcA => {
@@ -689,7 +678,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0xCE
@@ -702,7 +691,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 new_state.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0x90
@@ -711,7 +700,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x91
             Instruction::SubC => {
@@ -719,7 +708,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x92
             Instruction::SubD => {
@@ -727,7 +716,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x93
             Instruction::SubE => {
@@ -735,7 +724,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x94
             Instruction::SubH => {
@@ -743,7 +732,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x95
             Instruction::SubL => {
@@ -751,7 +740,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x96
             Instruction::SubM => {
@@ -766,7 +755,7 @@ impl State8080 /*<'a>*/ {
                 let res = (res_precise & 0xff) as u8;
                 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x97
             Instruction::SubA => {
@@ -774,7 +763,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0xD6
@@ -785,7 +774,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 new_state.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0x98
@@ -796,7 +785,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x99
             Instruction::SbbC => {
@@ -806,7 +795,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x9a
             Instruction::SbbD => {
@@ -816,7 +805,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x9b
             Instruction::SbbE => {
@@ -826,7 +815,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x9c
             Instruction::SbbH => {
@@ -836,7 +825,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x9d
             Instruction::SbbL => {
@@ -846,7 +835,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x9e
             Instruction::SbbM => {
@@ -862,7 +851,7 @@ impl State8080 /*<'a>*/ {
                 let res = (res_precise & 0xff) as u8;
                 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
             // 0x9f
             Instruction::SbbA => {
@@ -872,7 +861,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 self.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0xDE
@@ -885,7 +874,7 @@ impl State8080 /*<'a>*/ {
                 let res = res_precise as u8;
 
                 new_state.setting_a(res)
-                    .setting_arith_flags(res_precise)
+                    .setting_all_flags(res_precise)
             }
 
             // 0x04
@@ -1141,7 +1130,7 @@ impl State8080 /*<'a>*/ {
                 }
                 
                 // Not entirely sure about how flags should be set here
-                self.setting_a(a as u8).setting_arith_flags(a)
+                self.setting_a(a as u8).setting_all_flags(a)
             }
 
 
