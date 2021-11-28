@@ -1270,6 +1270,65 @@ impl State8080 /*<'a>*/ {
                 new_state.setting_a(res).setting_all_flags(res as u16)
             }
 
+            // 0xB8
+            Instruction::CmpB => {
+                let res = self.a.wrapping_sub(self.b);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xB9
+            Instruction::CmpC => {
+                let res = self.a.wrapping_sub(self.c);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xBA
+            Instruction::CmpD => {
+                let res = self.a.wrapping_sub(self.d);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xBB
+            Instruction::CmpE => {
+                let res = self.a.wrapping_sub(self.e);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xBC
+            Instruction::CmpH => {
+                let res = self.a.wrapping_sub(self.h);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xBD
+            Instruction::CmpL => {
+                let res = self.a.wrapping_sub(self.l);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xBE
+            Instruction::CmpM => {
+                let offset: u16 = self.hl().into();
+                let m = self.memory[offset as usize];
+                let res = self.a.wrapping_sub(m);
+
+                self.setting_all_flags(res as u16)
+            }
+            // 0xBF
+            Instruction::CmpA => {
+                let res = self.a.wrapping_sub(self.a);
+
+                self.setting_all_flags(res as u16)
+            }
+
+            // 0xFE
+            Instruction::Cpi => {
+                let (new_state, byte) = self.reading_next_byte();
+                let res = new_state.a.wrapping_sub(byte);
+
+                new_state.setting_a(res).setting_all_flags(res as u16)
+            }
+
 
             // 0x07
             Instruction::Rlc => {
@@ -1435,15 +1494,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-
-            Instruction::CmpB => self,
-            Instruction::CmpC => self,
-            Instruction::CmpD => self,
-            Instruction::CmpE => self,
-            Instruction::CmpH => self,
-            Instruction::CmpL => self,
-            Instruction::CmpM => self,
-            Instruction::CmpA => self,
             Instruction::Rnz => self,
             // 0xC1
             Instruction::PopB => Self {
@@ -1631,18 +1681,7 @@ impl State8080 /*<'a>*/ {
             },
 
             Instruction::Cm => self,
-            Instruction::Cpi => {
-                let (new_state, byte) = self.reading_next_byte();
 
-                let res = new_state.a.wrapping_sub(byte);
-                let mut cc = new_state.cc.clone();
-                cc.set(ConditionCodes::Z, res == 0);
-                cc.set(ConditionCodes::S, (res & 0x80) == 0x80);
-                cc.set(ConditionCodes::P, parity(res));
-                cc.set(ConditionCodes::CY, new_state.a < byte);
-
-                Self { cc, ..new_state }
-            }
             Instruction::Rst7 => self,
         }
     }
