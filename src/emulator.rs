@@ -309,6 +309,24 @@ impl State8080 /*<'a>*/ {
         Self { sp, ..self }
     }
 
+    fn setting_pc(self, pc: u16) -> Self {
+        Self { pc, ..self }
+    }
+
+
+
+    fn jumping(self, condition: bool) -> Self {
+        let (new_state, pair) = self.reading_next_pair();
+
+        if condition {
+            new_state.setting_pc(pair.into())
+        } else {
+            new_state
+        }
+    }
+
+
+
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
         #[cfg(feature = "logging")]
         #[cfg(not(feature = "diagsupport"))]
@@ -1380,6 +1398,61 @@ impl State8080 /*<'a>*/ {
             // 0x37
             Instruction::Stc => self.setting_flag(ConditionCodes::CY, true),
 
+
+            // Branch Group
+
+            // 0xC3
+            Instruction::Jmp => self.jumping(true),
+            // 0xC2
+            Instruction::Jnz => {
+                let condition = !self.cc.contains(ConditionCodes::Z);
+                
+                self.jumping(condition)
+            }
+            // 0xCA
+            Instruction::Jz => {
+                let condition = self.cc.contains(ConditionCodes::Z);
+                
+                self.jumping(condition)
+            }
+            // 0xD2
+            Instruction::Jnc => {
+                let condition = !self.cc.contains(ConditionCodes::CY);
+                
+                self.jumping(condition)
+            }
+            // 0xDA
+            Instruction::Jc => {
+                let condition = self.cc.contains(ConditionCodes::CY);
+                
+                self.jumping(condition)
+            }
+            // 0xE2
+            Instruction::Jpo => {
+                let condition = !self.cc.contains(ConditionCodes::P);
+                
+                self.jumping(condition)
+            }
+            // 0xEA
+            Instruction::Jpe => {
+                let condition = self.cc.contains(ConditionCodes::P);
+                
+                self.jumping(condition)
+            }
+            // 0xF2
+            Instruction::Jp => {
+                let condition = !self.cc.contains(ConditionCodes::S);
+                
+                self.jumping(condition)
+            }
+            // 0xFA
+            Instruction::Jm => {
+                let condition = self.cc.contains(ConditionCodes::S);
+                
+                self.jumping(condition)
+            }
+
+
             Instruction::MovBB => self,
             Instruction::MovBC => self,
             Instruction::MovBD => self,
@@ -1510,27 +1583,7 @@ impl State8080 /*<'a>*/ {
                 sp: self.sp.wrapping_add(2),
                 ..self
             },
-            // 0xC2
-            Instruction::Jnz => {
-                let (new_state, pair) = self.reading_next_pair();
 
-                if !new_state.cc.contains(ConditionCodes::Z) {
-                    Self {
-                        pc: pair.into(),
-                        ..new_state
-                    }
-                } else {
-                    new_state
-                }
-            }
-            // 0xC3
-            Instruction::Jmp => {
-                let (new_state, pair) = self.reading_next_pair();
-                Self {
-                    pc: pair.into(),
-                    ..new_state
-                }
-            }
             Instruction::Cnz => self,
             // 0xC5
             Instruction::PushB => {
@@ -1551,7 +1604,6 @@ impl State8080 /*<'a>*/ {
                     ..self
                 }
             }
-            Instruction::Jz => self,
             Instruction::Cz => self,
             // 0xCD
             Instruction::Call => {
@@ -1604,7 +1656,6 @@ impl State8080 /*<'a>*/ {
                 sp: self.sp.wrapping_add(2),
                 ..self
             },
-            Instruction::Jnc => self,
             // 0xD3
             Instruction::Out => {
                 let (new_state, _b) = self.reading_next_byte();
@@ -1619,7 +1670,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::Rst2 => self,
             Instruction::Rc => self,
-            Instruction::Jc => self,
             // 0xDB
             Instruction::In => {
                 let (new_state, _b) = self.reading_next_byte();
@@ -1637,7 +1687,6 @@ impl State8080 /*<'a>*/ {
                 sp: self.sp.wrapping_add(2),
                 ..self
             },
-            Instruction::Jpo => self,
             Instruction::Xthl => self,
             Instruction::Cpo => self,
             // 0xE5
@@ -1649,7 +1698,6 @@ impl State8080 /*<'a>*/ {
             Instruction::Rst4 => self,
             Instruction::Rpe => self,
             Instruction::Pchl => self,
-            Instruction::Jpe => self,
 
             Instruction::Cpe => self,
             
@@ -1662,7 +1710,6 @@ impl State8080 /*<'a>*/ {
                 cc: ConditionCodes::from_bits_truncate(self.memory[self.sp as usize]),
                 ..self
             },
-            Instruction::Jp => self,
 
             Instruction::Cp => self,
 
@@ -1675,7 +1722,6 @@ impl State8080 /*<'a>*/ {
             Instruction::Rst6 => self,
             Instruction::Rm => self,
             Instruction::Sphl => self,
-            Instruction::Jm => self,
 
             // 0xF3
             Instruction::Di => Self {
