@@ -1750,52 +1750,68 @@ impl State8080 /*<'a>*/ {
             // 0xB8
             Instruction::CmpB => {
                 let res = self.a.wrapping_sub(self.b);
+                let cy = self.a < self.b;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xB9
             Instruction::CmpC => {
                 let res = self.a.wrapping_sub(self.c);
+                let cy = self.a < self.c;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xBA
             Instruction::CmpD => {
                 let res = self.a.wrapping_sub(self.d);
+                let cy = self.a < self.d;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xBB
             Instruction::CmpE => {
                 let res = self.a.wrapping_sub(self.e);
+                let cy = self.a < self.e;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xBC
             Instruction::CmpH => {
                 let res = self.a.wrapping_sub(self.h);
+                let cy = self.a < self.h;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xBD
             Instruction::CmpL => {
                 let res = self.a.wrapping_sub(self.l);
+                let cy = self.a < self.l;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xBE
             Instruction::CmpM => {
                 let offset: u16 = self.hl().into();
                 let m = self.memory[offset as usize];
                 let res = self.a.wrapping_sub(m);
+                let cy = self.a < m;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
             // 0xBF
             Instruction::CmpA => {
                 let res = self.a.wrapping_sub(self.a);
+                let cy = self.a < self.a;
 
                 self.setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
 
             // 0xFE
@@ -1804,8 +1820,7 @@ impl State8080 /*<'a>*/ {
                 let res = new_state.a.wrapping_sub(byte);
                 let cy = new_state.a < byte;
 
-                new_state.setting_a(res)
-                    .setting_all_flags(res as u16)
+                new_state.setting_all_flags(res as u16)
                     .setting_flag(ConditionCodes::CY, cy)
             }
 
