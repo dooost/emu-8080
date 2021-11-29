@@ -1624,6 +1624,21 @@ impl State8080 /*<'a>*/ {
                 self.returning(condition)
             }
 
+            Instruction::Pchl => {
+                let res = self.hl().into();
+
+                self.setting_pc(res)
+            }
+
+            Instruction::Rst0 => self,
+            Instruction::Rst1 => self,
+            Instruction::Rst2 => self,
+            Instruction::Rst3 => self,
+            Instruction::Rst4 => self,
+            Instruction::Rst5 => self,
+            Instruction::Rst6 => self,
+            Instruction::Rst7 => self,
+
 
             Instruction::MovBB => self,
             Instruction::MovBC => self,
@@ -1761,10 +1776,8 @@ impl State8080 /*<'a>*/ {
                 self.pushing(high, low)
             }
 
-            Instruction::Rst0 => self,
 
 
-            Instruction::Rst1 => self,
             // 0xD1
             Instruction::PopD => Self {
                 e: self.memory[self.sp as usize],
@@ -1783,7 +1796,6 @@ impl State8080 /*<'a>*/ {
                 let (high, low) = (self.d, self.e);
                 self.pushing(high, low)
             }
-            Instruction::Rst2 => self,
             // 0xDB
             Instruction::In => {
                 let (new_state, _b) = self.reading_next_byte();
@@ -1791,7 +1803,6 @@ impl State8080 /*<'a>*/ {
                 // (state.input_handler.0)(b);
             }
 
-            Instruction::Rst3 => self,
             // 0xE1
             Instruction::PopH => Self {
                 l: self.memory[self.sp as usize],
@@ -1806,11 +1817,6 @@ impl State8080 /*<'a>*/ {
                 self.pushing(high, low)
             }
 
-            Instruction::Rst4 => self,
-            Instruction::Pchl => self,
-
-            
-            Instruction::Rst5 => self,
             // 0xF1
             Instruction::PopPsw => Self {
                 a: self.memory[self.sp.wrapping_add(1) as usize],
@@ -1826,7 +1832,6 @@ impl State8080 /*<'a>*/ {
                 self.pushing(high, low)
             }
 
-            Instruction::Rst6 => self,
             Instruction::Sphl => self,
 
             // 0xF3
@@ -1841,7 +1846,6 @@ impl State8080 /*<'a>*/ {
             },
 
 
-            Instruction::Rst7 => self,
         }
     }
 
