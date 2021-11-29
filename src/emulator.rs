@@ -1802,8 +1802,11 @@ impl State8080 /*<'a>*/ {
             Instruction::Cpi => {
                 let (new_state, byte) = self.reading_next_byte();
                 let res = new_state.a.wrapping_sub(byte);
+                let cy = new_state.a < byte;
 
-                new_state.setting_a(res).setting_all_flags(res as u16)
+                new_state.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
 
             // 0x07
@@ -1930,7 +1933,7 @@ impl State8080 /*<'a>*/ {
                             .for_each(|c| print!("{}", c as char));
                         println!();
                     } else if new_state.c == 2 {
-                        print!("{}", new_state.e as char);
+                        print!("{:x}", new_state.e);
                     }
 
                     new_state
