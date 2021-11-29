@@ -1505,7 +1505,7 @@ impl State8080 /*<'a>*/ {
                             .for_each(|c| print!("{}", c as char));
                         println!();
                     } else if new_state.c == 2 {
-                        println!("print char routine called");
+                        print!("{}", new_state.e as char);
                     }
 
                     new_state
