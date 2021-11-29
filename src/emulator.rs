@@ -126,6 +126,26 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn memory_at_sp(&self) -> BytePair {
+        let low_index = self.sp;
+        let high_index = self.sp.wrapping_add(1);
+        let low = self.memory[low_index as usize];
+        let high = self.memory[high_index as usize];
+
+        BytePair {
+            high,
+            low,
+        }
+    }
+
+    fn setting_memory_at_sp(self, pair: BytePair) -> Self {
+        let low_index = self.sp;
+        let high_index = self.sp.wrapping_add(1);
+        
+        self.setting_memory_at(pair.low, low_index)
+            .setting_memory_at(pair.high, high_index)
+    }
+
     fn reading_next_byte(self) -> (Self, u8) {
         let mut state = self;
         let byte = state.memory[state.pc as usize];
@@ -1701,6 +1721,45 @@ impl State8080 /*<'a>*/ {
                 new_state.setting_a(popped.high).setting_raw_cc(popped.low)
             }
 
+            // 0xE3
+            Instruction::Xthl => {
+                let hl_pair = self.hl();
+                let sp_pair = self.memory_at_sp();
+
+                self.setting_hl(sp_pair).setting_memory_at_sp(hl_pair)
+            }
+
+            // 0xF9
+            Instruction::Sphl => {
+                let hl = self.hl();
+
+                self.setting_sp(hl.into())
+            }
+
+            // 0xD3
+            Instruction::Out => {
+                let (new_state, _b) = self.reading_next_byte();
+                new_state
+                // (state.output_handler.0)(b);
+            }
+            // 0xDB
+            Instruction::In => {
+                let (new_state, _b) = self.reading_next_byte();
+                new_state
+                // (state.input_handler.0)(b);
+            }
+
+            // 0xF3
+            Instruction::Di => Self {
+                interrupt_enabled: false,
+                ..self
+            },
+            // 0xFB
+            Instruction::Ei => Self {
+                interrupt_enabled: true,
+                ..self
+            },
+
             Instruction::MovBB => self,
             Instruction::MovBC => self,
             Instruction::MovBD => self,
@@ -1822,43 +1881,6 @@ impl State8080 /*<'a>*/ {
                 }
             }
             Instruction::MovAA => self,
-
-
-            
-
-            // 0xD3
-            Instruction::Out => {
-                let (new_state, _b) = self.reading_next_byte();
-                new_state
-                // (state.output_handler.0)(b);
-            }
-
-            // 0xDB
-            Instruction::In => {
-                let (new_state, _b) = self.reading_next_byte();
-                new_state
-                // (state.input_handler.0)(b);
-            }
-
-            Instruction::Xthl => self,
-
-
-
-
-
-            Instruction::Sphl => self,
-
-            // 0xF3
-            Instruction::Di => Self {
-                interrupt_enabled: false,
-                ..self
-            },
-            // 0xFB
-            Instruction::Ei => Self {
-                interrupt_enabled: true,
-                ..self
-            },
-
 
         }
     }
