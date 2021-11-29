@@ -346,6 +346,19 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn returning(self, condition: bool) -> Self {
+        if condition {
+            let low = self.memory[self.sp as usize];
+            let high = self.memory[self.sp.wrapping_add(1) as usize];
+            let pc = BytePair { low, high }.into();
+            let sp = self.sp.wrapping_add(2);
+            
+            self.setting_pc(pc).setting_sp(sp)
+        } else {
+            self
+        }
+    }
+
 
 
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
@@ -1560,6 +1573,57 @@ impl State8080 /*<'a>*/ {
                 self.calling(condition)
             }
 
+            // 0xC9
+            Instruction::Ret => self.returning(true),
+
+            Instruction::Rnz => {
+                let condition = !self.cc.contains(ConditionCodes::Z);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rz => {
+                let condition = self.cc.contains(ConditionCodes::Z);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rnc => {
+                let condition = !self.cc.contains(ConditionCodes::CY);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rc => {
+                let condition = self.cc.contains(ConditionCodes::CY);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rpo => {
+                let condition = !self.cc.contains(ConditionCodes::P);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rpe => {
+                let condition = self.cc.contains(ConditionCodes::P);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rp => {
+                let condition = !self.cc.contains(ConditionCodes::S);
+                
+                self.returning(condition)
+            }
+
+            Instruction::Rm => {
+                let condition = self.cc.contains(ConditionCodes::S);
+                
+                self.returning(condition)
+            }
+
 
             Instruction::MovBB => self,
             Instruction::MovBC => self,
@@ -1683,7 +1747,6 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-            Instruction::Rnz => self,
             // 0xC1
             Instruction::PopB => Self {
                 c: self.memory[self.sp as usize],
@@ -1699,21 +1762,9 @@ impl State8080 /*<'a>*/ {
             }
 
             Instruction::Rst0 => self,
-            Instruction::Rz => self,
-            // 0xC9
-            Instruction::Ret => {
-                let low = self.memory[self.sp as usize];
-                let high = self.memory[self.sp.wrapping_add(1) as usize];
 
-                Self {
-                    sp: self.sp.wrapping_add(2),
-                    pc: BytePair { low, high }.into(),
-                    ..self
-                }
-            }
 
             Instruction::Rst1 => self,
-            Instruction::Rnc => self,
             // 0xD1
             Instruction::PopD => Self {
                 e: self.memory[self.sp as usize],
@@ -1733,7 +1784,6 @@ impl State8080 /*<'a>*/ {
                 self.pushing(high, low)
             }
             Instruction::Rst2 => self,
-            Instruction::Rc => self,
             // 0xDB
             Instruction::In => {
                 let (new_state, _b) = self.reading_next_byte();
@@ -1742,7 +1792,6 @@ impl State8080 /*<'a>*/ {
             }
 
             Instruction::Rst3 => self,
-            Instruction::Rpo => self,
             // 0xE1
             Instruction::PopH => Self {
                 l: self.memory[self.sp as usize],
@@ -1758,12 +1807,10 @@ impl State8080 /*<'a>*/ {
             }
 
             Instruction::Rst4 => self,
-            Instruction::Rpe => self,
             Instruction::Pchl => self,
 
             
             Instruction::Rst5 => self,
-            Instruction::Rp => self,
             // 0xF1
             Instruction::PopPsw => Self {
                 a: self.memory[self.sp.wrapping_add(1) as usize],
@@ -1780,7 +1827,6 @@ impl State8080 /*<'a>*/ {
             }
 
             Instruction::Rst6 => self,
-            Instruction::Rm => self,
             Instruction::Sphl => self,
 
             // 0xF3
