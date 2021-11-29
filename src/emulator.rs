@@ -414,6 +414,399 @@ impl State8080 /*<'a>*/ {
 
             // Data Transfer Group
 
+            // 0x40
+            Instruction::MovBB => {
+                let val = self.b;
+                
+                self.setting_b(val)
+            }
+            // 0x41
+            Instruction::MovBC => {
+                let val = self.c;
+                
+                self.setting_b(val)
+            }
+            // 0x42
+            Instruction::MovBD => {
+                let val = self.d;
+                
+                self.setting_b(val)
+            }
+            // 0x43
+            Instruction::MovBE => {
+                let val = self.e;
+                
+                self.setting_b(val)
+            }
+            // 0x44
+            Instruction::MovBH => {
+                let val = self.h;
+                
+                self.setting_b(val)
+            }
+            // 0x45
+            Instruction::MovBL => {
+                let val = self.l;
+                
+                self.setting_b(val)
+            }
+            // 0x46
+            Instruction::MovBM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_b(val)
+            }
+            // 0x47
+            Instruction::MovBA => {
+                let val = self.a;
+                
+                self.setting_b(val)
+            }
+
+            // 0x48
+            Instruction::MovCB => {
+                let val = self.b;
+                
+                self.setting_c(val)
+            }
+            // 0x49
+            Instruction::MovCC => {
+                let val = self.c;
+                
+                self.setting_c(val)
+            }
+            // 0x4A
+            Instruction::MovCD => {
+                let val = self.d;
+                
+                self.setting_c(val)
+            }
+            // 0x4B
+            Instruction::MovCE => {
+                let val = self.e;
+                
+                self.setting_c(val)
+            }
+            // 0x4C
+            Instruction::MovCH => {
+                let val = self.h;
+                
+                self.setting_c(val)
+            }
+            // 0x4D
+            Instruction::MovCL => {
+                let val = self.l;
+                
+                self.setting_c(val)
+            }
+            // 0x4E
+            Instruction::MovCM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_c(val)
+            }
+            // 0x4F
+            Instruction::MovCA => {
+                let val = self.a;
+                
+                self.setting_c(val)
+            }
+
+            // 0x50
+            Instruction::MovDB => {
+                let val = self.b;
+                
+                self.setting_d(val)
+            }
+            // 0x51
+            Instruction::MovDC => {
+                let val = self.c;
+                
+                self.setting_d(val)
+            }
+            // 0x52
+            Instruction::MovDD => {
+                let val = self.d;
+                
+                self.setting_d(val)
+            }
+            // 0x53
+            Instruction::MovDE => {
+                let val = self.e;
+                
+                self.setting_d(val)
+            }
+            // 0x54
+            Instruction::MovDH => {
+                let val = self.h;
+                
+                self.setting_d(val)
+            }
+            // 0x55
+            Instruction::MovDL => {
+                let val = self.l;
+                
+                self.setting_d(val)
+            }
+            // 0x56
+            Instruction::MovDM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_d(val)
+            }
+            // 0x57
+            Instruction::MovDA => {
+                let val = self.a;
+                
+                self.setting_d(val)
+            }
+
+            // 0x58
+            Instruction::MovEB => {
+                let val = self.b;
+                
+                self.setting_e(val)
+            }
+            // 0x59
+            Instruction::MovEC => {
+                let val = self.c;
+                
+                self.setting_e(val)
+            }
+            // 0x5A
+            Instruction::MovED => {
+                let val = self.d;
+                
+                self.setting_e(val)
+            }
+            // 0x5B
+            Instruction::MovEE => {
+                let val = self.e;
+                
+                self.setting_e(val)
+            }
+            // 0x5C
+            Instruction::MovEH => {
+                let val = self.h;
+                
+                self.setting_e(val)
+            }
+            // 0x5D
+            Instruction::MovEL => {
+                let val = self.l;
+                
+                self.setting_e(val)
+            }
+            // 0x5E
+            Instruction::MovEM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_e(val)
+            }
+            // 0x5F
+            Instruction::MovEA => {
+                let val = self.a;
+                
+                self.setting_e(val)
+            }
+
+            // 0x60
+            Instruction::MovHB => {
+                let val = self.b;
+                
+                self.setting_h(val)
+            }
+            // 0x61
+            Instruction::MovHC => {
+                let val = self.c;
+                
+                self.setting_h(val)
+            }
+            // 0x62
+            Instruction::MovHD => {
+                let val = self.d;
+                
+                self.setting_h(val)
+            }
+            // 0x63
+            Instruction::MovHE => {
+                let val = self.e;
+                
+                self.setting_h(val)
+            }
+            // 0x64
+            Instruction::MovHH => {
+                let val = self.h;
+                
+                self.setting_h(val)
+            }
+            // 0x65
+            Instruction::MovHL => {
+                let val = self.l;
+                
+                self.setting_h(val)
+            }
+            // 0x66
+            Instruction::MovHM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_h(val)
+            }
+            // 0x67
+            Instruction::MovHA => {
+                let val = self.a;
+                
+                self.setting_h(val)
+            }
+
+            // 0x68
+            Instruction::MovLB => {
+                let val = self.b;
+                
+                self.setting_l(val)
+            }
+            // 0x69
+            Instruction::MovLC => {
+                let val = self.c;
+                
+                self.setting_l(val)
+            }
+            // 0x6A
+            Instruction::MovLD => {
+                let val = self.d;
+                
+                self.setting_l(val)
+            }
+            // 0x6B
+            Instruction::MovLE => {
+                let val = self.e;
+                
+                self.setting_l(val)
+            }
+            // 0x6C
+            Instruction::MovLH => {
+                let val = self.h;
+                
+                self.setting_l(val)
+            }
+            // 0x6D
+            Instruction::MovLL => {
+                let val = self.l;
+                
+                self.setting_l(val)
+            }
+            // 0x6E
+            Instruction::MovLM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_l(val)
+            }
+            // 0x6F
+            Instruction::MovLA => {
+                let val = self.a;
+                
+                self.setting_l(val)
+            }
+
+            // 0x70
+            Instruction::MovMB => {
+                let offset = self.hl().into();
+                let byte = self.b;
+                self.setting_memory_at(byte, offset)
+            }
+            // 0x71
+            Instruction::MovMC => {
+                let offset = self.hl().into();
+                let byte = self.c;
+                self.setting_memory_at(byte, offset)
+            }
+            // 0x72
+            Instruction::MovMD => {
+                let offset = self.hl().into();
+                let byte = self.d;
+                self.setting_memory_at(byte, offset)
+            }
+            // 0x73
+            Instruction::MovME => {
+                let offset = self.hl().into();
+                let byte = self.e;
+                self.setting_memory_at(byte, offset)
+            }
+            // 0x74
+            Instruction::MovMH => {
+                let offset = self.hl().into();
+                let byte = self.h;
+                self.setting_memory_at(byte, offset)
+            }
+            // 0x75
+            Instruction::MovML => {
+                let offset = self.hl().into();
+                let byte = self.l;
+                self.setting_memory_at(byte, offset)
+            }
+            // 0x77
+            Instruction::MovMA => {
+                let offset = self.hl().into();
+                let byte = self.a;
+                self.setting_memory_at(byte, offset)
+            }
+
+            // 0x78
+            Instruction::MovAB => {
+                let val = self.b;
+                
+                self.setting_a(val)
+            }
+            // 0x79
+            Instruction::MovAC => {
+                let val = self.c;
+                
+                self.setting_a(val)
+            }
+            // 0x7A
+            Instruction::MovAD => {
+                let val = self.d;
+                
+                self.setting_a(val)
+            }
+            // 0x7B
+            Instruction::MovAE => {
+                let val = self.e;
+                
+                self.setting_a(val)
+            }
+            // 0x7C
+            Instruction::MovAH => {
+                let val = self.h;
+                
+                self.setting_a(val)
+            }
+            // 0x7D
+            Instruction::MovAL => {
+                let val = self.l;
+                
+                self.setting_a(val)
+            }
+            // 0x7E
+            Instruction::MovAM => {
+                let offset: u16 = self.hl().into();
+                let val = self.memory[offset as usize];
+                
+                self.setting_a(val)
+            }
+            // 0x7F
+            Instruction::MovAA => {
+                let val = self.a;
+                
+                self.setting_a(val)
+            }
+
             // 0x06
             Instruction::MviB => {
                 let (new_state, byte) = self.reading_next_byte();
@@ -1760,128 +2153,8 @@ impl State8080 /*<'a>*/ {
                 ..self
             },
 
-            Instruction::MovBB => self,
-            Instruction::MovBC => self,
-            Instruction::MovBD => self,
-            Instruction::MovBE => self,
-            Instruction::MovBH => self,
-            Instruction::MovBL => self,
-            Instruction::MovBM => self,
-            Instruction::MovBA => self,
-            Instruction::MovCB => self,
-            Instruction::MovCC => self,
-            Instruction::MovCD => self,
-            Instruction::MovCE => self,
-            Instruction::MovCH => self,
-            Instruction::MovCL => self,
-            Instruction::MovCM => self,
-            Instruction::MovCA => self,
-            Instruction::MovDB => self,
-            Instruction::MovDC => self,
-            Instruction::MovDD => self,
-            Instruction::MovDE => self,
-            Instruction::MovDH => self,
-            Instruction::MovDL => self,
-            // 0x56
-            Instruction::MovDM => {
-                let offset: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                Self {
-                    d: self.memory[offset as usize],
-                    ..self
-                }
-            }
-            Instruction::MovDA => self,
-            Instruction::MovEB => self,
-            Instruction::MovEC => self,
-            Instruction::MovED => self,
-            Instruction::MovEE => self,
-            Instruction::MovEH => self,
-            Instruction::MovEL => self,
-            // 0x5e
-            Instruction::MovEM => {
-                let offset: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                Self {
-                    e: self.memory[offset as usize],
-                    ..self
-                }
-            }
-            Instruction::MovEA => self,
-            Instruction::MovHB => self,
-            Instruction::MovHC => self,
-            Instruction::MovHD => self,
-            Instruction::MovHE => self,
-            Instruction::MovHH => self,
-            Instruction::MovHL => self,
-            // 0x66
-            Instruction::MovHM => {
-                let offset: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                Self {
-                    h: self.memory[offset as usize],
-                    ..self
-                }
-            }
-            Instruction::MovHA => self,
-            Instruction::MovLB => self,
-            Instruction::MovLC => self,
-            Instruction::MovLD => self,
-            Instruction::MovLE => self,
-            Instruction::MovLH => self,
-            Instruction::MovLL => self,
-            Instruction::MovLM => self,
-            // 0x6F
-            Instruction::MovLA => Self { l: self.a, ..self },
-            Instruction::MovMB => self,
-            Instruction::MovMC => self,
-            Instruction::MovMD => self,
-            Instruction::MovME => self,
-            Instruction::MovMH => self,
-            Instruction::MovML => self,
+            // 0x76
             Instruction::Hlt => self,
-            // 0x77
-            Instruction::MovMA => {
-                let offset: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                let byte = self.a;
-                self.setting_memory_at(byte, offset)
-            }
-            Instruction::MovAB => self,
-            Instruction::MovAC => self,
-            // 0x7A
-            Instruction::MovAD => Self { a: self.d, ..self },
-            // 0x7B
-            Instruction::MovAE => Self { a: self.e, ..self },
-            // 0x7C
-            Instruction::MovAH => Self { a: self.h, ..self },
-            Instruction::MovAL => self,
-            // 0x7E
-            Instruction::MovAM => {
-                let offset: u16 = BytePair {
-                    high: self.h,
-                    low: self.l,
-                }
-                .into();
-                Self {
-                    a: self.memory[offset as usize],
-                    ..self
-                }
-            }
-            Instruction::MovAA => self,
-
         }
     }
 
