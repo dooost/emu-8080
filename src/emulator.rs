@@ -151,6 +151,13 @@ impl State8080 /*<'a>*/ {
         state
     }
 
+    fn setting_raw_cc(self, bits: u8) -> Self {
+        State8080 {
+            cc: ConditionCodes::from_bits_truncate(bits),
+            ..self
+        }
+    }
+
     fn setting_all_flags(self, value: u16) -> Self {
         self.setting_zspac_flags(value as u8)
             .setting_cy_flag(value)
@@ -346,14 +353,20 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn popping(self) -> (Self, BytePair) {
+        let low = self.memory[self.sp as usize];
+        let high = self.memory[self.sp.wrapping_add(1) as usize];
+        let popped = BytePair { low, high };
+        let sp = self.sp.wrapping_add(2);
+        
+        (self.setting_sp(sp), popped)
+    }
+
     fn returning(self, condition: bool) -> Self {
         if condition {
-            let low = self.memory[self.sp as usize];
-            let high = self.memory[self.sp.wrapping_add(1) as usize];
-            let pc = BytePair { low, high }.into();
-            let sp = self.sp.wrapping_add(2);
-            
-            self.setting_pc(pc).setting_sp(sp)
+            let (new_state, popped) = self.popping();
+
+            new_state.setting_pc(popped.into())
         } else {
             self
         }
@@ -1639,6 +1652,54 @@ impl State8080 /*<'a>*/ {
             Instruction::Rst6 => self,
             Instruction::Rst7 => self,
 
+            // Stack Group
+
+            // 0xC5
+            Instruction::PushB => {
+                let (high, low) = (self.b, self.c);
+                self.pushing(high, low)
+            }
+            // 0xD5
+            Instruction::PushD => {
+                let (high, low) = (self.d, self.e);
+                self.pushing(high, low)
+            }
+            // 0xE5
+            Instruction::PushH => {
+                let (high, low) = (self.h, self.l);
+                self.pushing(high, low)
+            }
+            // 0xF5
+            Instruction::PushPsw => {
+                let (high, low) = (self.a, self.cc.bits);
+
+                self.pushing(high, low)
+            }
+
+            // 0xC1
+            Instruction::PopB => {
+                let (new_state, popped) = self.popping();
+
+                new_state.setting_bc(popped.into())
+            }
+            // 0xD1
+            Instruction::PopD => {
+                let (new_state, popped) = self.popping();
+
+                new_state.setting_de(popped.into())
+            }
+            // 0xE1
+            Instruction::PopH => {
+                let (new_state, popped) = self.popping();
+
+                new_state.setting_hl(popped.into())
+            }
+            // 0xF1
+            Instruction::PopPsw => {
+                let (new_state, popped) = self.popping();
+
+                new_state.setting_a(popped.high).setting_raw_cc(popped.low)
+            }
 
             Instruction::MovBB => self,
             Instruction::MovBC => self,
@@ -1762,40 +1823,16 @@ impl State8080 /*<'a>*/ {
             }
             Instruction::MovAA => self,
 
-            // 0xC1
-            Instruction::PopB => Self {
-                c: self.memory[self.sp as usize],
-                b: self.memory[self.sp.wrapping_add(1) as usize],
-                sp: self.sp.wrapping_add(2),
-                ..self
-            },
 
-            // 0xC5
-            Instruction::PushB => {
-                let (high, low) = (self.b, self.c);
-                self.pushing(high, low)
-            }
+            
 
-
-
-            // 0xD1
-            Instruction::PopD => Self {
-                e: self.memory[self.sp as usize],
-                d: self.memory[self.sp.wrapping_add(1) as usize],
-                sp: self.sp.wrapping_add(2),
-                ..self
-            },
             // 0xD3
             Instruction::Out => {
                 let (new_state, _b) = self.reading_next_byte();
                 new_state
                 // (state.output_handler.0)(b);
             }
-            // 0xD5
-            Instruction::PushD => {
-                let (high, low) = (self.d, self.e);
-                self.pushing(high, low)
-            }
+
             // 0xDB
             Instruction::In => {
                 let (new_state, _b) = self.reading_next_byte();
@@ -1803,34 +1840,11 @@ impl State8080 /*<'a>*/ {
                 // (state.input_handler.0)(b);
             }
 
-            // 0xE1
-            Instruction::PopH => Self {
-                l: self.memory[self.sp as usize],
-                h: self.memory[self.sp.wrapping_add(1) as usize],
-                sp: self.sp.wrapping_add(2),
-                ..self
-            },
             Instruction::Xthl => self,
-            // 0xE5
-            Instruction::PushH => {
-                let (high, low) = (self.h, self.l);
-                self.pushing(high, low)
-            }
-
-            // 0xF1
-            Instruction::PopPsw => Self {
-                a: self.memory[self.sp.wrapping_add(1) as usize],
-                sp: self.sp.wrapping_add(2),
-                cc: ConditionCodes::from_bits_truncate(self.memory[self.sp as usize]),
-                ..self
-            },
 
 
-            Instruction::PushPsw => {
-                let (high, low) = (self.a, self.cc.bits);
 
-                self.pushing(high, low)
-            }
+
 
             Instruction::Sphl => self,
 
