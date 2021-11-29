@@ -1329,7 +1329,6 @@ impl State8080 /*<'a>*/ {
                 new_state.setting_a(res).setting_all_flags(res as u16)
             }
 
-
             // 0x07
             Instruction::Rlc => {
                 let x = self.a;
@@ -1363,15 +1362,24 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(a)
                     .setting_flag(ConditionCodes::CY, (x & 1) == 1)
             }
-
-
             
             // 0x2F
-            Instruction::Cma => Self { a: !self.a, ..self },
+            Instruction::Cma => {
+                let complement = !self.a;
 
-            Instruction::Stc => self,
+                self.setting_a(complement)
+            }
+            
+            // 0x3F
+            Instruction::Cmc => {
+                let complement = !self.cc.contains(ConditionCodes::CY);
 
-            Instruction::Cmc => self,
+                self.setting_flag(ConditionCodes::CY, complement)
+            }
+
+            // 0x37
+            Instruction::Stc => self.setting_flag(ConditionCodes::CY, true),
+
             Instruction::MovBB => self,
             Instruction::MovBC => self,
             Instruction::MovBD => self,
