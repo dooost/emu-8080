@@ -325,6 +325,27 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn calling(self, condition: bool) -> Self {
+        let (new_state, pair) = self.reading_next_pair();
+
+        if condition {
+            let addr: u16 = pair.into();
+
+            let return_addr = new_state.pc;
+            let return_pair = BytePair::from(return_addr);
+
+            let high_mem_addr = new_state.sp.wrapping_sub(1);
+            let low_mem_addr = new_state.sp.wrapping_sub(2);
+
+            new_state.setting_pc(addr)
+                .setting_sp(low_mem_addr)
+                .setting_memory_at(return_pair.high, high_mem_addr)
+                .setting_memory_at(return_pair.low, low_mem_addr)
+        } else {
+            new_state
+        }
+    }
+
 
 
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
@@ -1452,6 +1473,93 @@ impl State8080 /*<'a>*/ {
                 self.jumping(condition)
             }
 
+            // 0xCD
+            Instruction::Call => {
+                let (new_state, pair) = self.reading_next_pair();
+
+                let addr: u16 = pair.into();
+                if cfg!(feature = "diagsupport") && addr == 5 {
+                    if new_state.c == 9 {
+                        let offset: u16 = BytePair {
+                            high: new_state.d,
+                            low: new_state.e,
+                        }
+                        .into();
+                        new_state.memory[(offset as usize + 3)..]
+                            .iter()
+                            .take_while(|c| **c != b'$')
+                            .map(|c| *c)
+                            .for_each(|c| print!("{}", c as char));
+                        println!();
+                    } else if new_state.c == 2 {
+                        println!("print char routine called");
+                    }
+
+                    new_state
+                } else if cfg!(feature = "diagsupport") && addr == 0 {
+                    panic!("Diag hit call 0");
+                } else {
+                    let return_addr = new_state.pc;
+                    let return_pair = BytePair::from(return_addr);
+
+                    let high_mem_addr = new_state.sp.wrapping_sub(1);
+                    let low_mem_addr = new_state.sp.wrapping_sub(2);
+
+                    new_state.setting_pc(addr)
+                        .setting_sp(low_mem_addr)
+                        .setting_memory_at(return_pair.high, high_mem_addr)
+                        .setting_memory_at(return_pair.low, low_mem_addr)
+                }
+            }
+            // 0xC4
+            Instruction::Cnz =>  {
+                let condition = !self.cc.contains(ConditionCodes::Z);
+                
+                self.calling(condition)
+            }
+            // 0xCC
+            Instruction::Cz => {
+                let condition = self.cc.contains(ConditionCodes::Z);
+                
+                self.calling(condition)
+            }
+            // 0xD4
+            Instruction::Cnc => {
+                let condition = !self.cc.contains(ConditionCodes::CY);
+                
+                self.calling(condition)
+            }
+            // 0xDC
+            Instruction::Cc => {
+                let condition = self.cc.contains(ConditionCodes::CY);
+                
+                self.calling(condition)
+            }
+            // 0xE4
+            Instruction::Cpo => {
+                let condition = !self.cc.contains(ConditionCodes::P);
+                
+                self.calling(condition)
+            }
+            // 0xEC
+            Instruction::Cpe => {
+                let condition = self.cc.contains(ConditionCodes::P);
+                
+                self.calling(condition)
+            }
+            // 0xF4
+            Instruction::Cp => {
+                let condition = !self.cc.contains(ConditionCodes::S);
+                
+                self.calling(condition)
+            }
+            // 0xFC
+            Instruction::Cm => {
+                let condition = self.cc.contains(ConditionCodes::S);
+                
+                self.calling(condition)
+            }
+
 
             Instruction::MovBB => self,
             Instruction::MovBC => self,
@@ -1584,7 +1692,6 @@ impl State8080 /*<'a>*/ {
                 ..self
             },
 
-            Instruction::Cnz => self,
             // 0xC5
             Instruction::PushB => {
                 let (high, low) = (self.b, self.c);
@@ -1604,49 +1711,7 @@ impl State8080 /*<'a>*/ {
                     ..self
                 }
             }
-            Instruction::Cz => self,
-            // 0xCD
-            Instruction::Call => {
-                let (new_state, pair) = self.reading_next_pair();
 
-                let addr: u16 = pair.into();
-                if cfg!(feature = "diagsupport") && addr == 5 {
-                    if new_state.c == 9 {
-                        let offset: u16 = BytePair {
-                            high: new_state.d,
-                            low: new_state.e,
-                        }
-                        .into();
-                        new_state.memory[(offset as usize + 3)..]
-                            .iter()
-                            .take_while(|c| **c != b'$')
-                            .map(|c| *c)
-                            .for_each(|c| print!("{}", c as char));
-                        println!();
-                    } else if new_state.c == 2 {
-                        println!("print char routine called");
-                    }
-
-                    new_state
-                } else if cfg!(feature = "diagsupport") && addr == 0 {
-                    panic!("Diag hit call 0");
-                } else {
-                    let return_addr = new_state.pc;
-                    let return_pair = BytePair::from(return_addr);
-
-                    let high_mem_addr = new_state.sp.wrapping_sub(1);
-                    let low_mem_addr = new_state.sp.wrapping_sub(2);
-
-                    let new_state = Self {
-                        pc: addr,
-                        ..new_state
-                    };
-
-                    new_state
-                        .setting_memory_at(return_pair.high, high_mem_addr)
-                        .setting_memory_at(return_pair.low, low_mem_addr)
-                }
-            }
             Instruction::Rst1 => self,
             Instruction::Rnc => self,
             // 0xD1
@@ -1662,7 +1727,6 @@ impl State8080 /*<'a>*/ {
                 new_state
                 // (state.output_handler.0)(b);
             }
-            Instruction::Cnc => self,
             // 0xD5
             Instruction::PushD => {
                 let (high, low) = (self.d, self.e);
@@ -1676,7 +1740,6 @@ impl State8080 /*<'a>*/ {
                 new_state
                 // (state.input_handler.0)(b);
             }
-            Instruction::Cc => self,
 
             Instruction::Rst3 => self,
             Instruction::Rpo => self,
@@ -1688,7 +1751,6 @@ impl State8080 /*<'a>*/ {
                 ..self
             },
             Instruction::Xthl => self,
-            Instruction::Cpo => self,
             // 0xE5
             Instruction::PushH => {
                 let (high, low) = (self.h, self.l);
@@ -1699,7 +1761,6 @@ impl State8080 /*<'a>*/ {
             Instruction::Rpe => self,
             Instruction::Pchl => self,
 
-            Instruction::Cpe => self,
             
             Instruction::Rst5 => self,
             Instruction::Rp => self,
@@ -1711,7 +1772,6 @@ impl State8080 /*<'a>*/ {
                 ..self
             },
 
-            Instruction::Cp => self,
 
             Instruction::PushPsw => {
                 let (high, low) = (self.a, self.cc.bits);
@@ -1734,7 +1794,6 @@ impl State8080 /*<'a>*/ {
                 ..self
             },
 
-            Instruction::Cm => self,
 
             Instruction::Rst7 => self,
         }
