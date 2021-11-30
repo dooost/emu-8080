@@ -210,6 +210,10 @@ impl State8080 /*<'a>*/ {
             .setting_ac_flag(value)
     }
 
+    fn clearing_ac(self) -> Self {
+        self.setting_flag(ConditionCodes::AC, false)
+    }
+
     fn pushing(self, high: u8, low: u8) -> Self {
         let mut state = self;
         state.memory[state.sp.wrapping_sub(1) as usize] = high;
@@ -1553,18 +1557,23 @@ impl State8080 /*<'a>*/ {
 
             // 0x27
             Instruction::Daa => {
-                let mut a: u16 = self.a as u16;
+                let mut a = self.a as u16;
+                let mut cy = self.cc.contains(ConditionCodes::CY);
+                let ac = self.cc.contains(ConditionCodes::AC);
 
-                if a & 0xf > 9 {
+                if ac || a & 0xf > 9 {
                     a += 6;
                 }
 
-                if a & 0xf0 > 0x90 {
+                if cy || a & 0xf0 > 0x90 {
                     a += 0x60;
+                    cy = true;
                 }
                 
                 // Not entirely sure about how flags should be set here
-                self.setting_a(a as u8).setting_all_flags(a)
+                self.setting_a(a as u8)
+                    .setting_all_flags(a)
+                    .setting_flag(ConditionCodes::CY, cy)
             }
 
 
@@ -1626,44 +1635,58 @@ impl State8080 /*<'a>*/ {
                 let (new_state, byte) = self.reading_next_byte();
                 let res = new_state.a & byte;
 
-                new_state.setting_a(res).setting_all_flags(res as u16)
+                new_state.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
 
             // 0xA8
             Instruction::XraB => {
                 let res = self.a ^ self.b;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xA9
             Instruction::XraC => {
                 let res = self.a ^ self.c;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xAA
             Instruction::XraD => {
                 let res = self.a ^ self.d;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xAB
             Instruction::XraE => {
                 let res = self.a ^ self.e;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xAC
             Instruction::XraH => {
                 let res = self.a ^ self.h;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xAD
             Instruction::XraL => {
                 let res = self.a ^ self.l;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xAE
             Instruction::XraM => {
@@ -1671,13 +1694,17 @@ impl State8080 /*<'a>*/ {
                 let m = self.memory[offset as usize];
                 let res = self.a ^ m;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xAF
             Instruction::XraA => {
                 let res = self.a ^ self.a;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
 
             // 0xEE
@@ -1685,44 +1712,58 @@ impl State8080 /*<'a>*/ {
                 let (new_state, byte) = self.reading_next_byte();
                 let res = new_state.a ^ byte;
 
-                new_state.setting_a(res).setting_all_flags(res as u16)
+                new_state.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
 
             // 0xB0
             Instruction::OraB => {
                 let res = self.a | self.b;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB1
             Instruction::OraC => {
                 let res = self.a | self.c;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB2
             Instruction::OraD => {
                 let res = self.a | self.d;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB3
             Instruction::OraE => {
                 let res = self.a | self.e;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB4
             Instruction::OraH => {
                 let res = self.a | self.h;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB5
             Instruction::OraL => {
                 let res = self.a | self.l;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB6
             Instruction::OraM => {
@@ -1730,13 +1771,17 @@ impl State8080 /*<'a>*/ {
                 let m = self.memory[offset as usize];
                 let res = self.a | m;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
             // 0xB7
             Instruction::OraA => {
                 let res = self.a | self.a;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
 
             // 0xF6
@@ -1744,7 +1789,9 @@ impl State8080 /*<'a>*/ {
                 let (new_state, byte) = self.reading_next_byte();
                 let res = new_state.a | byte;
 
-                new_state.setting_a(res).setting_all_flags(res as u16)
+                new_state.setting_a(res)
+                    .setting_all_flags(res as u16)
+                    .clearing_ac()
             }
 
             // 0xB8
