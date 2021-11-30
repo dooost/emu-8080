@@ -2002,7 +2002,7 @@ impl State8080 /*<'a>*/ {
                             .for_each(|c| print!("{}", c as char));
                         println!();
                     } else if new_state.c == 2 {
-                        print!("{:x}", new_state.e);
+                        print!("{}", new_state.e as char);
                     }
 
                     new_state
