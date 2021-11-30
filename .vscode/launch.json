@@ -31,7 +31,6 @@
                 "args": [
                     "build",
                     "--bin=diag",
-                    "--features=diagsupport",
                     "--package=emu-8080"
                 ],
                 "filter": {
@@ -51,7 +50,6 @@
                     "test",
                     "--no-run",
                     "--bin=diag",
-                    "--features=diagsupport",
                     "--package=emu-8080"
                 ],
                 "filter": {

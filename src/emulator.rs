@@ -17,7 +17,7 @@ bitflags! {
     }
 }
 
-struct BytePair {
+pub struct BytePair {
     pub low: u8,
     pub high: u8,
 }
@@ -37,7 +37,7 @@ pub struct State8080 /*<'a>*/ {
     pub pc: u16,
     pub cc: ConditionCodes,
     pub interrupt_enabled: bool,
-    memory: Vec<u8>,
+    pub memory: Vec<u8>,
     // input_handler: InjectedIOHandler<'a>,
     // output_handler: InjectedIOHandler<'a>,
 }
@@ -105,21 +105,21 @@ impl State8080 /*<'a>*/ {
         }
     }
 
-    fn bc(&self) -> BytePair {
+    pub fn bc(&self) -> BytePair {
         BytePair {
             high: self.b,
             low: self.c,
         }
     }
 
-    fn de(&self) -> BytePair {
+    pub fn de(&self) -> BytePair {
         BytePair {
             high: self.d,
             low: self.e,
         }
     }
 
-    fn hl(&self) -> BytePair {
+    pub fn hl(&self) -> BytePair {
         BytePair {
             high: self.h,
             low: self.l,
@@ -349,12 +349,6 @@ impl State8080 /*<'a>*/ {
     fn jumping(self, condition: bool) -> Self {
         let (new_state, pair) = self.reading_next_pair();
         let addr = pair.into();
-
-        // Terminate on JMP $0000 in diag
-        #[cfg(feature = "diagsupport")]
-        if addr == 0 {
-            std::process::exit(0);
-        }
 
         if condition {
             new_state.setting_pc(addr)
@@ -1988,38 +1982,16 @@ impl State8080 /*<'a>*/ {
                 let (new_state, pair) = self.reading_next_pair();
 
                 let addr: u16 = pair.into();
-                if cfg!(feature = "diagsupport") && addr == 5 {
-                    if new_state.c == 9 {
-                        let offset: u16 = BytePair {
-                            high: new_state.d,
-                            low: new_state.e,
-                        }
-                        .into();
-                        new_state.memory[(offset as usize + 3)..]
-                            .iter()
-                            .take_while(|c| **c != b'$')
-                            .map(|c| *c)
-                            .for_each(|c| print!("{}", c as char));
-                        println!();
-                    } else if new_state.c == 2 {
-                        print!("{}", new_state.e as char);
-                    }
+                let return_addr = new_state.pc;
+                let return_pair = BytePair::from(return_addr);
 
-                    new_state
-                } else if cfg!(feature = "diagsupport") && addr == 0 {
-                    panic!("Diag hit call 0");
-                } else {
-                    let return_addr = new_state.pc;
-                    let return_pair = BytePair::from(return_addr);
+                let high_mem_addr = new_state.sp.wrapping_sub(1);
+                let low_mem_addr = new_state.sp.wrapping_sub(2);
 
-                    let high_mem_addr = new_state.sp.wrapping_sub(1);
-                    let low_mem_addr = new_state.sp.wrapping_sub(2);
-
-                    new_state.setting_pc(addr)
-                        .setting_sp(low_mem_addr)
-                        .setting_memory_at(return_pair.high, high_mem_addr)
-                        .setting_memory_at(return_pair.low, low_mem_addr)
-                }
+                new_state.setting_pc(addr)
+                    .setting_sp(low_mem_addr)
+                    .setting_memory_at(return_pair.high, high_mem_addr)
+                    .setting_memory_at(return_pair.low, low_mem_addr)
             }
             // 0xC4
             Instruction::Cnz =>  {
@@ -2225,7 +2197,10 @@ impl State8080 /*<'a>*/ {
             },
 
             // 0x76
-            Instruction::Hlt => self,
+            Instruction::Hlt => {
+                println!("HLT called!");
+                std::process::exit(0);
+            }
         }
     }
 

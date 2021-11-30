@@ -10,7 +10,6 @@ crate-type = ["lib", "staticlib"]
 
 [[bin]]
 name = "diag"
-required-features = ["diagsupport"]
 
 [[bin]]
 name = "run"
@@ -20,4 +19,3 @@ bitflags = "1.3.2"
 
 [features]
 logging = []
-diagsupport = []
