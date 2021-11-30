@@ -348,9 +348,16 @@ impl State8080 /*<'a>*/ {
 
     fn jumping(self, condition: bool) -> Self {
         let (new_state, pair) = self.reading_next_pair();
+        let addr = pair.into();
+
+        // Terminate on JMP $0000 in diag
+        #[cfg(feature = "diagsupport")]
+        if addr == 0 {
+            std::process::exit(0);
+        }
 
         if condition {
-            new_state.setting_pc(pair.into())
+            new_state.setting_pc(addr)
         } else {
             new_state
         }
