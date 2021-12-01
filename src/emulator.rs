@@ -44,7 +44,7 @@ pub struct State8080 /*<'a>*/ {
 
 impl Default for ConditionCodes {
     fn default() -> Self {
-        Self { bits: 0 }
+        Self { bits: 0b00000010 }
     }
 }
 
