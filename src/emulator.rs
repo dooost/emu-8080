@@ -1524,36 +1524,36 @@ impl State8080 /*<'a>*/ {
             Instruction::DadB => {
                 let hl: u16 = self.hl().into();
                 let bc: u16 = self.bc().into();
-                let res = (hl as u32).wrapping_add(bc as u32);
-                let res_pair = BytePair::from(res as u16);
+                let res = hl.wrapping_add(bc);
+                let res_pair = BytePair::from(res);
 
-                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, hl > 0xffff - bc)
             }
             // 0x19
             Instruction::DadD => {
                 let hl: u16 = self.hl().into();
                 let de: u16 = self.de().into();
-                let res = (hl as u32).wrapping_add(de as u32);
-                let res_pair = BytePair::from(res as u16);
+                let res = hl.wrapping_add(de);
+                let res_pair = BytePair::from(res);
 
-                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, hl > 0xffff - de)
             }
             // 0x29
             Instruction::DadH => {
                 let hl: u16 = self.hl().into();
-                let res = (hl as u32).wrapping_add(hl as u32);
-                let res_pair = BytePair::from(res as u16);
+                let res = hl.wrapping_add(hl);
+                let res_pair = BytePair::from(res);
 
-                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, hl > 0xffff - hl)
             }
             // 0x39
             Instruction::DadSp => {
                 let hl: u16 = self.hl().into();
                 let sp = self.sp;
-                let res = (hl as u32).wrapping_add(sp as u32);
-                let res_pair = BytePair::from(res as u16);
+                let res = hl.wrapping_add(sp);
+                let res_pair = BytePair::from(res);
 
-                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, (res & 0xff00) != 0)
+                self.setting_hl(res_pair).setting_flag(ConditionCodes::CY, hl > 0xffff - sp)
             }
 
             // 0x27
