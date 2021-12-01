@@ -8,12 +8,12 @@ use crate::disassembler::Instruction;
 bitflags! {
     #[repr(C)]
     pub struct ConditionCodes: u8 {
-        const Z = 0b00000001;
-        const S = 0b00000010;
-        const P = 0b00000100;
-        const CY = 0b00001000;
+        const S = 0b10000000;
+        const Z = 0b01000000;
         const AC = 0b00010000;
-        const PAD = 0b11100000;
+        const P = 0b00000100;
+        const CY = 0b00000001;
+        const PAD = 0b00101010;
     }
 }
 
