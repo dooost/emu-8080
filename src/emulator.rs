@@ -1085,7 +1085,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x87
             Instruction::AddA => {
-                let rhs = self.l;
+                let rhs = self.a;
 
                 self.adding(rhs, false)
             }
