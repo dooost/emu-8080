@@ -441,10 +441,12 @@ impl State8080 /*<'a>*/ {
     }
 
     fn ana(self, rhs: u8) -> Self {
-        let res = self.a & rhs;
+        let lhs = self.a;
+        let res = lhs & rhs;
 
         self.setting_a(res)
-            .setting_zspac_flags(res, res)
+            .setting_zsp_flags(res)
+            .setting_flag(ConditionCodes::AC, ((lhs | rhs) & 0x08) != 0)
             .clearing_cy()
     }
 
@@ -1621,7 +1623,7 @@ impl State8080 /*<'a>*/ {
             Instruction::Ani => {
                 let (new_state, byte) = self.reading_next_byte();
                 
-                new_state.ana(byte).clearing_ac()
+                new_state.ana(byte)
             }
 
             // 0xA8
