@@ -24,7 +24,7 @@ pub struct BytePair {
 
 // pub struct InjectedIOHandler<'a>(Box<dyn Fn(u8) + 'a>);
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct State8080 /*<'a>*/ {
     pub a: u8,
     pub b: u8,
@@ -1208,7 +1208,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x97
             Instruction::SubA => {
-                let rhs = self.l;
+                let rhs = self.a;
 
                 self.subtracting(rhs, false)
             }
@@ -2136,6 +2136,15 @@ impl State8080 /*<'a>*/ {
         }
 
         state
+    }
+
+    pub fn log_current_instruction(self) {
+        let (mut state, op_code) = self.reading_next_byte();
+
+        match Instruction::try_from(op_code) {
+            Ok(instruction) => state.log_instruction(instruction.clone()),
+            Err(_) => println!("Not an instruction: {:#04x}", op_code),
+        }
     }
 }
 
