@@ -126,6 +126,26 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    pub fn s(&self) -> bool {
+        self.cc.contains(ConditionCodes::S)
+    }
+
+    pub fn z(&self) -> bool {
+        self.cc.contains(ConditionCodes::Z)
+    }
+
+    pub fn p(&self) -> bool {
+        self.cc.contains(ConditionCodes::P)
+    }
+
+    pub fn cy(&self) -> bool {
+        self.cc.contains(ConditionCodes::CY)
+    }
+
+    pub fn ac(&self) -> bool {
+        self.cc.contains(ConditionCodes::AC)
+    }
+
     fn memory_at_sp(&self) -> BytePair {
         let low_index = self.sp;
         let high_index = self.sp.wrapping_add(1);
@@ -178,8 +198,8 @@ impl State8080 /*<'a>*/ {
         }
     }
 
-    fn setting_all_flags(self, value: u16) -> Self {
-        self.setting_zspac_flags(value as u8)
+    fn setting_all_flags(self, value: u16, ac_check: u8) -> Self {
+        self.setting_zspac_flags(value as u8, ac_check)
             .setting_cy_flag(value)
     }
 
@@ -203,15 +223,22 @@ impl State8080 /*<'a>*/ {
         self.setting_flag(ConditionCodes::AC, value > 0x0f)
     }
 
-    fn setting_zspac_flags(self, value: u8) -> Self {
+    fn setting_zsp_flags(self, value: u8) -> Self {
         self.setting_z_flag(value)
             .setting_s_flag(value)
             .setting_p_flag(value)
-            .setting_ac_flag(value)
+    }
+    fn setting_zspac_flags(self, value: u8, ac_check: u8) -> Self {
+        self.setting_zsp_flags(value)
+            .setting_ac_flag(ac_check)
     }
 
     fn clearing_ac(self) -> Self {
         self.setting_flag(ConditionCodes::AC, false)
+    }
+
+    fn clearing_cy(self) -> Self {
+        self.setting_flag(ConditionCodes::CY, false)
     }
 
     fn pushing(self, high: u8, low: u8) -> Self {
@@ -397,7 +424,54 @@ impl State8080 /*<'a>*/ {
         }
     }
 
+    fn adding(self, rhs: u8, cy: bool) -> Self {
+        let res_precise = self.a as u16 + rhs as u16 + cy as u16;
+        let ac_check = (self.a & 0x0f) + (rhs & 0x0f) + cy as u8;
+        let res = res_precise as u8;
 
+        self.setting_a(res)
+            .setting_all_flags(res_precise, ac_check)
+    }
+
+    fn subtracting(self, rhs: u8, cy: bool) -> Self {
+        let new_state = self.adding(!rhs, !cy);
+        let new_cy = new_state.cy();
+
+        new_state.setting_flag(ConditionCodes::CY, !new_cy)
+    }
+
+    fn ana(self, rhs: u8) -> Self {
+        let res = self.a & rhs;
+
+        self.setting_a(res)
+            .setting_zspac_flags(res, res)
+            .clearing_cy()
+    }
+
+    fn xra(self, rhs: u8) -> Self {
+        let res = self.a ^ rhs;
+
+        self.setting_a(res)
+            .setting_zsp_flags(res)
+            .clearing_cy()
+            .clearing_ac()
+    }
+
+    fn ora(self, rhs: u8) -> Self {
+        let res = self.a | rhs;
+
+        self.setting_a(res)
+            .setting_zsp_flags(res)
+            .clearing_cy()
+            .clearing_ac()
+    }
+
+    fn cmp(self, rhs: u8) -> Self {
+        let a = self.a;
+
+        self.subtracting(rhs, false)
+            .setting_a(a)
+    }
 
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
         #[cfg(feature = "logging")]
@@ -968,452 +1042,364 @@ impl State8080 /*<'a>*/ {
 
             // 0x80
             Instruction::AddB => {
-                let res_precise = (self.a as u16).wrapping_add(self.b as u16);
-                let res = res_precise as u8;
+                let rhs = self.b;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x81
             Instruction::AddC => {
-                let res_precise = (self.a as u16).wrapping_add(self.c as u16);
-                let res = res_precise as u8;
+                let rhs = self.c;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x82
             Instruction::AddD => {
-                let res_precise = (self.a as u16).wrapping_add(self.d as u16);
-                let res = res_precise as u8;
+                let rhs = self.d;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x83
             Instruction::AddE => {
-                let res_precise = (self.a as u16).wrapping_add(self.e as u16);
-                let res = res_precise as u8;
+                let rhs = self.e;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x84
             Instruction::AddH => {
-                let res_precise = (self.a as u16).wrapping_add(self.h as u16);
-                let res = res_precise as u8;
+                let rhs = self.h;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x85
             Instruction::AddL => {
-                let res_precise = (self.a as u16).wrapping_add(self.l as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x86
             Instruction::AddM => {
                 let address: u16 = self.hl().into();
+                let rhs = self.memory[address as usize];
 
-                let res_precise =
-                    (self.a as u16).wrapping_add(self.memory[address as usize] as u16);
-                let res = (res_precise & 0xff) as u8;
-                
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
             // 0x87
             Instruction::AddA => {
-                let res_precise = (self.a as u16).wrapping_add(self.a as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, false)
             }
 
             // 0xC6
             Instruction::Adi => {
-                let (new_state, byte) = self.reading_next_byte();
+                let (new_state, rhs) = self.reading_next_byte();
 
-                let res_precise = (new_state.a as u16).wrapping_add(byte as u16);
-                let res = res_precise as u8;
-
-                new_state.setting_a(res)
-                    .setting_all_flags(res_precise)
+                new_state.adding(rhs, false)
             }
 
             // 0x88
             Instruction::AdcB => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.b as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.b;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x89
             Instruction::AdcC => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.c as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.c;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x8a
             Instruction::AdcD => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.d as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.d;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x8b
             Instruction::AdcE => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.e as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.e;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x8c
             Instruction::AdcH => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.h as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.h;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x8d
             Instruction::AdcL => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.l as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x8e
             Instruction::AdcM => {
                 let address: u16 = self.hl().into();
+                let rhs = self.memory[address as usize];
+                let cy = self.cy();
 
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.memory[address as usize] as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = (res_precise & 0xff) as u8;
-                
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
             // 0x8f
             Instruction::AdcA => {
-                let res_precise = (self.a as u16)
-                    .wrapping_add(self.a as u16)
-                    .wrapping_add(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.a;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.adding(rhs, cy)
             }
 
             // 0xCE
             Instruction::Aci => {
-                let (new_state, byte) = self.reading_next_byte();
+                let (new_state, rhs) = self.reading_next_byte();
+                let cy = new_state.cy();
 
-                let res_precise = (new_state.a as u16)
-                    .wrapping_add(byte as u16)
-                    .wrapping_add(new_state.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
-
-                new_state.setting_a(res)
-                    .setting_all_flags(res_precise)
+                new_state.adding(rhs, cy)
             }
 
             // 0x90
             Instruction::SubB => {
-                let res_precise = (self.a as u16).wrapping_sub(self.b as u16);
-                let res = res_precise as u8;
+                let rhs = self.b;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x91
             Instruction::SubC => {
-                let res_precise = (self.a as u16).wrapping_sub(self.c as u16);
-                let res = res_precise as u8;
+                let rhs = self.c;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x92
             Instruction::SubD => {
-                let res_precise = (self.a as u16).wrapping_sub(self.d as u16);
-                let res = res_precise as u8;
+                let rhs = self.d;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x93
             Instruction::SubE => {
-                let res_precise = (self.a as u16).wrapping_sub(self.e as u16);
-                let res = res_precise as u8;
+                let rhs = self.e;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x94
             Instruction::SubH => {
-                let res_precise = (self.a as u16).wrapping_sub(self.h as u16);
-                let res = res_precise as u8;
+                let rhs = self.h;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x95
             Instruction::SubL => {
-                let res_precise = (self.a as u16).wrapping_sub(self.l as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x96
             Instruction::SubM => {
                 let address: u16 = self.hl().into();
+                let rhs = self.memory[address as usize];
 
-                let res_precise =
-                    (self.a as u16).wrapping_sub(self.memory[address as usize] as u16);
-                let res = (res_precise & 0xff) as u8;
-                
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
             // 0x97
             Instruction::SubA => {
-                let res_precise = (self.a as u16).wrapping_sub(self.a as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, false)
             }
 
             // 0xD6
             Instruction::Sui => {
-                let (new_state, byte) = self.reading_next_byte();
+                let (new_state, rhs) = self.reading_next_byte();
 
-                let res_precise = (new_state.a as u16).wrapping_sub(byte as u16);
-                let res = res_precise as u8;
-
-                new_state.setting_a(res)
-                    .setting_all_flags(res_precise)
+                new_state.subtracting(rhs, false)
             }
 
             // 0x98
             Instruction::SbbB => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.b as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.b;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x99
             Instruction::SbbC => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.c as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.c;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x9a
             Instruction::SbbD => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.d as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.d;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x9b
             Instruction::SbbE => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.e as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.e;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x9c
             Instruction::SbbH => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.h as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.h;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x9d
             Instruction::SbbL => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.l as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x9e
             Instruction::SbbM => {
                 let address: u16 = self.hl().into();
+                let rhs = self.memory[address as usize];
+                let cy = self.cy();
 
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.memory[address as usize] as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = (res_precise & 0xff) as u8;
-                
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
             // 0x9f
             Instruction::SbbA => {
-                let res_precise = (self.a as u16)
-                    .wrapping_sub(self.a as u16)
-                    .wrapping_sub(self.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
+                let rhs = self.l;
+                let cy = self.cy();
 
-                self.setting_a(res)
-                    .setting_all_flags(res_precise)
+                self.subtracting(rhs, cy)
             }
 
             // 0xDE
             Instruction::Sbi => {
-                let (new_state, byte) = self.reading_next_byte();
+                let (new_state, rhs) = self.reading_next_byte();
+                let cy = new_state.cy();
 
-                let res_precise = (new_state.a as u16)
-                    .wrapping_sub(byte as u16)
-                    .wrapping_sub(new_state.cc.contains(ConditionCodes::CY) as u16);
-                let res = res_precise as u8;
-
-                new_state.setting_a(res)
-                    .setting_all_flags(res_precise)
+                new_state.subtracting(rhs, cy)
             }
 
             // 0x04
             Instruction::InrB => {
                 let res = self.b.wrapping_add(1);
+                let ac_check = (self.b & 0x0f) + 1;
 
-                self.setting_b(res).setting_zspac_flags(res)
+                self.setting_b(res).setting_zspac_flags(res, ac_check)
             }
             // 0x0C
             Instruction::InrC => {
                 let res = self.c.wrapping_add(1);
+                let ac_check = (self.c & 0x0f) + 1;
 
-                self.setting_c(res).setting_zspac_flags(res)
+                self.setting_c(res).setting_zspac_flags(res, ac_check)
             }
             // 0x14
             Instruction::InrD => {
                 let res = self.d.wrapping_add(1);
+                let ac_check = (self.d & 0x0f) + 1;
 
-                self.setting_d(res).setting_zspac_flags(res)
+                self.setting_d(res).setting_zspac_flags(res, ac_check)
             }
             // 0x1C
             Instruction::InrE => {
                 let res = self.e.wrapping_add(1);
+                let ac_check = (self.e & 0x0f) + 1;
 
-                self.setting_e(res).setting_zspac_flags(res)
+                self.setting_e(res).setting_zspac_flags(res, ac_check)
             }
             // 0x24
             Instruction::InrH => {
                 let res = self.h.wrapping_add(1);
+                let ac_check = (self.h & 0x0f) + 1;
 
-                self.setting_h(res).setting_zspac_flags(res)
+                self.setting_h(res).setting_zspac_flags(res, ac_check)
             }
             // 0x2C
             Instruction::InrL => {
                 let res = self.l.wrapping_add(1);
+                let ac_check = (self.l & 0x0f) + 1;
 
-                self.setting_l(res).setting_zspac_flags(res)
+                self.setting_l(res).setting_zspac_flags(res, ac_check)
             }
             // 0x34
             Instruction::InrM => {
                 let offset: u16 = self.hl().into();
                 let res = self.memory[offset as usize].wrapping_add(1);
+                let ac_check = (self.memory[offset as usize] & 0x0f) + 1;
 
-                self.setting_memory_at(res, offset).setting_zspac_flags(res)
+                self.setting_memory_at(res, offset).setting_zspac_flags(res, ac_check)
             }
             // 0x3C
             Instruction::InrA => {
                 let res = self.a.wrapping_add(1);
+                let ac_check = (self.a & 0x0f) + 1;
 
-                self.setting_a(res).setting_zspac_flags(res)
+                self.setting_a(res).setting_zspac_flags(res, ac_check)
             }
 
             // 0x05
             Instruction::DcrB => {
                 let res = self.b.wrapping_sub(1);
+                let ac_check = (self.b & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_b(res).setting_zspac_flags(res)
+                self.setting_b(res).setting_zspac_flags(res, ac_check)
             }
             // 0x0D
             Instruction::DcrC => {
                 let res = self.c.wrapping_sub(1);
+                let ac_check = (self.c & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_c(res).setting_zspac_flags(res)
+                self.setting_c(res).setting_zspac_flags(res, ac_check)
             }
             // 0x15
             Instruction::DcrD => {
                 let res = self.d.wrapping_sub(1);
+                let ac_check = (self.d & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_d(res).setting_zspac_flags(res)
+                self.setting_d(res).setting_zspac_flags(res, ac_check)
             }
             // 0x1D
             Instruction::DcrE => {
                 let res = self.e.wrapping_sub(1);
+                let ac_check = (self.e & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_e(res).setting_zspac_flags(res)
+                self.setting_e(res).setting_zspac_flags(res, ac_check)
             }
             // 0x25
             Instruction::DcrH => {
                 let res = self.h.wrapping_sub(1);
+                let ac_check = (self.h & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_h(res).setting_zspac_flags(res)
+                self.setting_h(res).setting_zspac_flags(res, ac_check)
             }
             // 0x2D
             Instruction::DcrL => {
                 let res = self.l.wrapping_sub(1);
+                let ac_check = (self.l & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_l(res).setting_zspac_flags(res)
+                self.setting_l(res).setting_zspac_flags(res, ac_check)
             }
             // 0x35
             Instruction::DcrM => {
                 let offset: u16 = self.hl().into();
                 let res = self.memory[offset as usize].wrapping_sub(1);
+                let ac_check = (self.memory[offset as usize] & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_memory_at(res, offset).setting_zspac_flags(res)
+                self.setting_memory_at(res, offset).setting_zspac_flags(res, ac_check)
             }
             // 0x3D
             Instruction::DcrA => {
                 let res = self.a.wrapping_sub(1);
+                let ac_check = (self.a & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
 
-                self.setting_a(res).setting_zspac_flags(res)
+                self.setting_a(res).setting_zspac_flags(res, ac_check)
             }
 
             // 0x03
@@ -1558,22 +1544,23 @@ impl State8080 /*<'a>*/ {
 
             // 0x27
             Instruction::Daa => {
-                let mut a = self.a as u16;
+                let mut correction = 0;
                 let mut cy = self.cc.contains(ConditionCodes::CY);
                 let ac = self.cc.contains(ConditionCodes::AC);
 
-                if ac || a & 0xf > 9 {
-                    a += 6;
+                let lsb = self.a & 0x0f;
+                let msb = self.a & 0xf0;
+                if ac || lsb > 9 {
+                    correction += 6;
                 }
 
-                if cy || a & 0xf0 > 0x90 {
-                    a += 0x60;
+                if cy || msb > 0x90 || (msb >= 0x90 && lsb > 9)  {
+                    correction += 0x60;
                     cy = true;
                 }
                 
                 // Not entirely sure about how flags should be set here
-                self.setting_a(a as u8)
-                    .setting_all_flags(a)
+                self.adding(correction, false)
                     .setting_flag(ConditionCodes::CY, cy)
             }
 
@@ -1582,294 +1569,230 @@ impl State8080 /*<'a>*/ {
 
             // 0xA0
             Instruction::AnaB => {
-                let res = self.a & self.b;
+                let rhs = self.b;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA1
             Instruction::AnaC => {
-                let res = self.a & self.c;
+                let rhs = self.c;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA2
             Instruction::AnaD => {
-                let res = self.a & self.d;
+                let rhs = self.d;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA3
             Instruction::AnaE => {
-                let res = self.a & self.e;
+                let rhs = self.e;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA4
             Instruction::AnaH => {
-                let res = self.a & self.h;
+                let rhs = self.h;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA5
             Instruction::AnaL => {
-                let res = self.a & self.l;
+                let rhs = self.l;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA6
             Instruction::AnaM => {
                 let offset: u16 = self.hl().into();
-                let m = self.memory[offset as usize];
-                let res = self.a & m;
+                let rhs = self.memory[offset as usize];
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
             // 0xA7
             Instruction::AnaA => {
-                let res = self.a & self.a;
+                let rhs = self.a;
 
-                self.setting_a(res).setting_all_flags(res as u16)
+                self.ana(rhs)
             }
 
             // 0xE6
             Instruction::Ani => {
                 let (new_state, byte) = self.reading_next_byte();
-                let res = new_state.a & byte;
-
-                new_state.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                
+                new_state.ana(byte).clearing_ac()
             }
 
             // 0xA8
             Instruction::XraB => {
-                let res = self.a ^ self.b;
+                let rhs = self.b;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xA9
             Instruction::XraC => {
-                let res = self.a ^ self.c;
+                let rhs = self.c;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xAA
             Instruction::XraD => {
-                let res = self.a ^ self.d;
+                let rhs = self.d;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xAB
             Instruction::XraE => {
-                let res = self.a ^ self.e;
+                let rhs = self.e;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xAC
             Instruction::XraH => {
-                let res = self.a ^ self.h;
+                let rhs = self.h;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xAD
             Instruction::XraL => {
-                let res = self.a ^ self.l;
+                let rhs = self.l;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xAE
             Instruction::XraM => {
                 let offset: u16 = self.hl().into();
-                let m = self.memory[offset as usize];
-                let res = self.a ^ m;
+                let rhs = self.memory[offset as usize];
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
             // 0xAF
             Instruction::XraA => {
-                let res = self.a ^ self.a;
+                let rhs = self.a;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.xra(rhs)
             }
 
             // 0xEE
             Instruction::Xri => {
                 let (new_state, byte) = self.reading_next_byte();
-                let res = new_state.a ^ byte;
 
-                new_state.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                new_state.xra(byte)
             }
 
             // 0xB0
             Instruction::OraB => {
-                let res = self.a | self.b;
+                let rhs = self.b;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB1
             Instruction::OraC => {
-                let res = self.a | self.c;
+                let rhs = self.c;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB2
             Instruction::OraD => {
-                let res = self.a | self.d;
+                let rhs = self.d;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB3
             Instruction::OraE => {
-                let res = self.a | self.e;
+                let rhs = self.e;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB4
             Instruction::OraH => {
-                let res = self.a | self.h;
+                let rhs = self.h;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB5
             Instruction::OraL => {
-                let res = self.a | self.l;
+                let rhs = self.l;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB6
             Instruction::OraM => {
                 let offset: u16 = self.hl().into();
-                let m = self.memory[offset as usize];
-                let res = self.a | m;
+                let rhs = self.memory[offset as usize];
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
             // 0xB7
             Instruction::OraA => {
-                let res = self.a | self.a;
+                let rhs = self.a;
 
-                self.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                self.ora(rhs)
             }
 
             // 0xF6
             Instruction::Ori => {
                 let (new_state, byte) = self.reading_next_byte();
-                let res = new_state.a | byte;
 
-                new_state.setting_a(res)
-                    .setting_all_flags(res as u16)
-                    .clearing_ac()
+                new_state.ora(byte)
             }
 
             // 0xB8
             Instruction::CmpB => {
-                let res = self.a.wrapping_sub(self.b);
-                let cy = self.a < self.b;
+                let rhs = self.b;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xB9
             Instruction::CmpC => {
-                let res = self.a.wrapping_sub(self.c);
-                let cy = self.a < self.c;
+                let rhs = self.c;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xBA
             Instruction::CmpD => {
-                let res = self.a.wrapping_sub(self.d);
-                let cy = self.a < self.d;
+                let rhs = self.d;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xBB
             Instruction::CmpE => {
-                let res = self.a.wrapping_sub(self.e);
-                let cy = self.a < self.e;
+                let rhs = self.e;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xBC
             Instruction::CmpH => {
-                let res = self.a.wrapping_sub(self.h);
-                let cy = self.a < self.h;
+                let rhs = self.h;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xBD
             Instruction::CmpL => {
-                let res = self.a.wrapping_sub(self.l);
-                let cy = self.a < self.l;
+                let rhs = self.l;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xBE
             Instruction::CmpM => {
                 let offset: u16 = self.hl().into();
-                let m = self.memory[offset as usize];
-                let res = self.a.wrapping_sub(m);
-                let cy = self.a < m;
+                let rhs = self.memory[offset as usize];
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
             // 0xBF
             Instruction::CmpA => {
-                let res = self.a.wrapping_sub(self.a);
-                let cy = self.a < self.a;
+                let rhs = self.a;
 
-                self.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                self.cmp(rhs)
             }
 
             // 0xFE
             Instruction::Cpi => {
                 let (new_state, byte) = self.reading_next_byte();
-                let res = new_state.a.wrapping_sub(byte);
-                let cy = new_state.a < byte;
 
-                new_state.setting_all_flags(res as u16)
-                    .setting_flag(ConditionCodes::CY, cy)
+                new_state.cmp(byte)
             }
 
             // 0x07
