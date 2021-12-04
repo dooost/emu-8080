@@ -13,7 +13,7 @@ bitflags! {
         const AC = 0b00010000;
         const P = 0b00000100;
         const CY = 0b00000001;
-        const PAD = 0b00101010;
+        const PAD = 0b00000010;
     }
 }
 
@@ -44,7 +44,7 @@ pub struct State8080 /*<'a>*/ {
 
 impl Default for ConditionCodes {
     fn default() -> Self {
-        Self { bits: 0b00000010 }
+        ConditionCodes::PAD
     }
 }
 
@@ -193,7 +193,7 @@ impl State8080 /*<'a>*/ {
 
     fn setting_raw_cc(self, bits: u8) -> Self {
         State8080 {
-            cc: ConditionCodes::from_bits_truncate(bits & 0b1101_0101 | 0b0000_0010),
+            cc: ConditionCodes::from_bits_truncate(bits | ConditionCodes::PAD.bits()),
             ..self
         }
     }
