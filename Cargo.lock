@@ -13,4 +13,19 @@ name = "emu-8080"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "i8080",
 ]
+
+[[package]]
+name = "i8080"
+version = "0.1.0"
+source = "git+https://github.com/mohanson/i8080#7d049396ed9a33cf656d8ec767c71c76be1ee8bc"
+dependencies = [
+ "rog",
+]
+
+[[package]]
+name = "rog"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa06de27450130fb2df9bcc45c3790666afe290f0502aac8a3410e4e95e1e6d2"
