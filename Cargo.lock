@@ -19,7 +19,7 @@ dependencies = [
 [[package]]
 name = "i8080"
 version = "0.1.0"
-source = "git+https://github.com/mohanson/i8080#7d049396ed9a33cf656d8ec767c71c76be1ee8bc"
+source = "git+https://github.com/mohanson/i8080?rev=7d04939#7d049396ed9a33cf656d8ec767c71c76be1ee8bc"
 dependencies = [
  "rog",
 ]

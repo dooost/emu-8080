@@ -15,7 +15,7 @@ name = "run"
 bitflags = "1.3.2"
 
 [dev-dependencies]
-i8080 = { git = "https://github.com/mohanson/i8080" }
+i8080 = { git = "https://github.com/mohanson/i8080", rev = "7d04939" }
 
 # Enable optimization for tests
 [profile.test]
