@@ -26,43 +26,6 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'diag'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--bin=diag",
-                    "--package=emu-8080"
-                ],
-                "filter": {
-                    "name": "diag",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'diag'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=diag",
-                    "--package=emu-8080"
-                ],
-                "filter": {
-                    "name": "diag",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
             "name": "Debug executable 'run'",
             "cargo": {
                 "args": [
@@ -92,6 +55,44 @@
                 "filter": {
                     "name": "run",
                     "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'diag_suites'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=diag_suites",
+                    "--package=emu-8080"
+                ],
+                "filter": {
+                    "name": "diag_suites",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'compare_i8080'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=compare_i8080",
+                    "--package=emu-8080"
+                ],
+                "filter": {
+                    "name": "compare_i8080",
+                    "kind": "test"
                 }
             },
             "args": [],
