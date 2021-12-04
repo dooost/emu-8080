@@ -188,6 +188,7 @@ impl State8080 /*<'a>*/ {
     fn setting_flag(self, flag: ConditionCodes, value: bool) -> Self {
         let mut state = self;
         state.cc.set(flag, value);
+        
         state
     }
 
@@ -1816,8 +1817,7 @@ impl State8080 /*<'a>*/ {
             // 0x17
             Instruction::Ral => {
                 let x = self.a;
-                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let a = ((carry_u8 & 1) >> 7) | (x << 1);
+                let a = self.cy() as u8 | (x << 1);
 
                 self.setting_a(a)
                     .setting_flag(ConditionCodes::CY, (x & 0x80) == 0x80)
@@ -1825,8 +1825,7 @@ impl State8080 /*<'a>*/ {
             // 0x1F
             Instruction::Rar => {
                 let x = self.a;
-                let carry_u8 = self.cc.contains(ConditionCodes::CY) as u8;
-                let a = ((carry_u8 & 1) << 7) | (x >> 1);
+                let a = ((self.cy() as u8) << 7) | (x >> 1);
 
                 self.setting_a(a)
                     .setting_flag(ConditionCodes::CY, (x & 1) == 1)
