@@ -1274,7 +1274,7 @@ impl State8080 /*<'a>*/ {
             }
             // 0x9f
             Instruction::SbbA => {
-                let rhs = self.l;
+                let rhs = self.a;
                 let cy = self.cy();
 
                 self.subtracting(rhs, cy)
@@ -2142,7 +2142,7 @@ impl State8080 /*<'a>*/ {
     }
 
     pub fn log_current_instruction(self) {
-        let (mut state, op_code) = self.reading_next_byte();
+        let (state, op_code) = self.reading_next_byte();
 
         match Instruction::try_from(op_code) {
             Ok(instruction) => state.log_instruction(instruction.clone()),
