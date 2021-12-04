@@ -193,7 +193,7 @@ impl State8080 /*<'a>*/ {
 
     fn setting_raw_cc(self, bits: u8) -> Self {
         State8080 {
-            cc: ConditionCodes::from_bits_truncate(bits),
+            cc: ConditionCodes::from_bits_truncate(bits & 0b1101_0101 | 0b0000_0010),
             ..self
         }
     }
