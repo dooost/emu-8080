@@ -1349,42 +1349,43 @@ impl State8080 /*<'a>*/ {
             // 0x05
             Instruction::DcrB => {
                 let res = self.b.wrapping_sub(1);
-                let ac_check = (self.b & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                // +1 here is instead of !false as u8, by the idea of negating addition
+                let ac_check = (self.b & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_b(res).setting_zspac_flags(res, ac_check)
             }
             // 0x0D
             Instruction::DcrC => {
                 let res = self.c.wrapping_sub(1);
-                let ac_check = (self.c & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.c & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_c(res).setting_zspac_flags(res, ac_check)
             }
             // 0x15
             Instruction::DcrD => {
                 let res = self.d.wrapping_sub(1);
-                let ac_check = (self.d & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.d & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_d(res).setting_zspac_flags(res, ac_check)
             }
             // 0x1D
             Instruction::DcrE => {
                 let res = self.e.wrapping_sub(1);
-                let ac_check = (self.e & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.e & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_e(res).setting_zspac_flags(res, ac_check)
             }
             // 0x25
             Instruction::DcrH => {
                 let res = self.h.wrapping_sub(1);
-                let ac_check = (self.h & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.h & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_h(res).setting_zspac_flags(res, ac_check)
             }
             // 0x2D
             Instruction::DcrL => {
                 let res = self.l.wrapping_sub(1);
-                let ac_check = (self.l & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.l & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_l(res).setting_zspac_flags(res, ac_check)
             }
@@ -1392,14 +1393,14 @@ impl State8080 /*<'a>*/ {
             Instruction::DcrM => {
                 let offset: u16 = self.hl().into();
                 let res = self.memory[offset as usize].wrapping_sub(1);
-                let ac_check = (self.memory[offset as usize] & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.memory[offset as usize] & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_memory_at(res, offset).setting_zspac_flags(res, ac_check)
             }
             // 0x3D
             Instruction::DcrA => {
                 let res = self.a.wrapping_sub(1);
-                let ac_check = (self.a & 0x0f) + (!1 & 0x0f) + !self.cy() as u8;
+                let ac_check = (self.a & 0x0f) + (!1 & 0x0f) + 1;
 
                 self.setting_a(res).setting_zspac_flags(res, ac_check)
             }
