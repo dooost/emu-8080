@@ -15,6 +15,11 @@ fn compare_on_cpudiag() {
     run_comparison("./resources/cpu_tests/cpudiag.bin");
 }
 
+#[test]
+fn compare_on_cputest() {
+    run_comparison("./resources/cpu_tests/CPUTEST.COM");
+}
+
 // Ignore this test cause it currently takes about an hour to finish, but it's the most helpful in debugging
 #[test]
 #[ignore]
