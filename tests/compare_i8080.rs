@@ -68,15 +68,11 @@ fn run_comparison(path: impl AsRef<Path>, keep_old_state: bool) {
     println!("Starting running suite {}...", filename);
 
     loop {
-        if !compare_states(&state, &cpu) {
-            if keep_old_state {
-                old_state.unwrap().log_current_instruction();
-            }
-            panic!("States do not match");
-        }
-
         if keep_old_state {
+            compare_states(&state, &cpu, old_state);
             old_state = Some(state.clone());
+        } else {
+            compare_states(&state, &cpu, None);
         }
 
         state = state.evaluating_next();
@@ -99,86 +95,131 @@ fn run_comparison(path: impl AsRef<Path>, keep_old_state: bool) {
     }
 }
 
-fn compare_states(state: &State8080, cpu: &Cpu) -> bool {
+fn compare_states(state: &State8080, cpu: &Cpu, old_state: Option<State8080>) {
     if cpu.reg.a != state.a {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg A mismatch: Should be {}, but is {}",
             cpu.reg.a, state.a
         );
-        return false;
     } else if cpu.reg.b != state.b {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg B mismatch: Should be {}, but is {}",
             cpu.reg.b, state.b
         );
-        return false;
     } else if cpu.reg.c != state.c {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg C mismatch: Should be {}, but is {}",
             cpu.reg.c, state.c
         );
-        return false;
     } else if cpu.reg.d != state.d {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg D mismatch: Should be {}, but is {}",
             cpu.reg.d, state.d
         );
-        return false;
     } else if cpu.reg.e != state.e {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg E mismatch: Should be {}, but is {}",
             cpu.reg.e, state.e
         );
-        return false;
     } else if cpu.reg.h != state.h {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg H mismatch: Should be {}, but is {}",
             cpu.reg.h, state.h
         );
-        return false;
     } else if cpu.reg.l != state.l {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg L mismatch: Should be {}, but is {}",
             cpu.reg.l, state.l
         );
-        return false;
     } else if cpu.reg.sp != state.sp {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg SP mismatch: Should be {}, but is {}",
             cpu.reg.sp, state.sp
         );
-        return false;
     } else if cpu.reg.pc != state.pc {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg PC mismatch: Should be {}, but is {}",
             cpu.reg.pc, state.pc
         );
-        return false;
     } else if cpu.mem.borrow().get(cpu.reg.pc) != state.memory[state.pc as usize] {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Memory data at PC mismatch: Should be {}, but is {}",
             cpu.mem.borrow().get(cpu.reg.pc),
             state.memory[state.pc as usize]
         );
-        return false;
     } else if cpu.mem.borrow().get(cpu.reg.sp) != state.memory[state.sp as usize] {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Memory data at PC mismatch: Should be {}, but is {}",
             cpu.mem.borrow().get(cpu.reg.sp),
             state.memory[state.sp as usize]
         );
-        return false;
     } else if cpu.reg.f != state.cc.bits() {
-        println!(
+        old_state.and_then(|s| -> Option<()> {
+            s.log_current_instruction();
+            None
+        });
+
+        panic!(
             "Reg F mismatch: Should be {:b}, but is {:b}",
             cpu.reg.f,
             state.cc.bits()
         );
-
-        return false;
     }
-
-    true
 }
 
 fn print_reference_output(cpu: &Cpu) {
