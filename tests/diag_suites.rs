@@ -3,11 +3,6 @@ mod utils;
 use utils::run_suite;
 
 #[test]
-fn run_cpudiag() {
-    run_suite("./resources/cpu_tests/cpudiag.bin");
-}
-
-#[test]
 fn run_8080pre() {
     run_suite("./resources/cpu_tests/8080PRE.COM");
 }
@@ -18,12 +13,16 @@ fn run_tst8080() {
 }
 
 #[test]
+fn run_cpudiag() {
+    run_suite("./resources/cpu_tests/cpudiag.bin");
+}
+
+#[test]
 fn run_cputest() {
     run_suite("./resources/cpu_tests/CPUTEST.COM");
 }
 
 #[test]
-#[ignore]
 fn run_8080exm() {
     run_suite("./resources/cpu_tests/8080EXM.COM");
 }

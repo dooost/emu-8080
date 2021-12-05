@@ -11,18 +11,40 @@ use i8080::{Cpu, Linear, Memory};
 use utils::{create_state_with_rom, print_output};
 
 #[test]
-fn compare_on_cpudiag() {
-    run_comparison("./resources/cpu_tests/cpudiag.bin");
+fn compare_on_8080pre() {
+    run_comparison("./resources/cpu_tests/8080PRE.COM", false);
 }
 
-// Ignore this test cause it currently takes about an hour to finish, but it's the most helpful in debugging
+#[test]
+fn compare_on_tst8080() {
+    run_comparison("./resources/cpu_tests/TST8080.COM", false);
+}
+
+#[test]
+fn compare_on_cpudiag() {
+    run_comparison("./resources/cpu_tests/cpudiag.bin", false);
+}
+
+#[test]
+fn compare_on_cputest() {
+    run_comparison("./resources/cpu_tests/CPUTEST.COM", false);
+}
+
+// This takes a few minutes to finish (3-4 mins on a high-end Intel MBP)
+#[test]
+fn compare_on_8080exm() {
+    run_comparison("./resources/cpu_tests/8080EXM.COM", false);
+}
+
+// This is super valuable for debugging where things are going south, but the current implementation
+// clones the old state to know what failed, which makes it very slow. Takes an hour for me to finish.
 #[test]
 #[ignore]
-fn compare_on_8080exm() {
-    run_comparison("./resources/cpu_tests/8080EXM.COM");
+fn compare_on_8080exm_print_failed_instruction() {
+    run_comparison("./resources/cpu_tests/8080EXM.COM", true);
 }
 
-fn run_comparison(path: impl AsRef<Path>) {
+fn run_comparison(path: impl AsRef<Path>, keep_old_state: bool) {
     let mut state = create_state_with_rom(path.as_ref());
 
     let mem = Rc::new(RefCell::new(Linear::new()));
@@ -32,7 +54,11 @@ fn run_comparison(path: impl AsRef<Path>) {
     // Because tests used the pseudo instruction ORG 0x0100
     cpu.reg.pc = 0x0100;
 
-    let mut old_state = state.clone();
+    let mut old_state = if keep_old_state {
+        Some(state.clone())
+    } else {
+        None
+    };
 
     let filename = path
         .as_ref()
@@ -43,11 +69,15 @@ fn run_comparison(path: impl AsRef<Path>) {
 
     loop {
         if !compare_states(&state, &cpu) {
-            old_state.log_current_instruction();
-            break;
+            if keep_old_state {
+                old_state.unwrap().log_current_instruction();
+            }
+            panic!("States do not match");
         }
 
-        old_state = state.clone();
+        if keep_old_state {
+            old_state = Some(state.clone());
+        }
 
         state = state.evaluating_next();
         cpu.next();
