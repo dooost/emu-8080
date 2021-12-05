@@ -1,10 +1,10 @@
 mod utils;
 
-use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::rc::Rc;
+use std::{cell::RefCell, time::Instant};
 
 use emu_8080::emulator::State8080;
 use i8080::{Cpu, Linear, Memory};
@@ -49,8 +49,17 @@ fn run_comparison(path: impl AsRef<Path>) {
 
         old_state = state.clone();
 
+        let emu_start = Instant::now();
+
         state = state.evaluating_next();
+
+        println!("Emu took {:?}ns", emu_start.elapsed());
+
+        let i8080_start = Instant::now();
+
         cpu.next();
+
+        println!("i8080 took {:?}", i8080_start.elapsed());
 
         print_output(&state);
         print_reference_output(&cpu);
