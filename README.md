@@ -25,11 +25,6 @@ Run diag binaries:
 cargo test --release  --test diag_suites -- --nocapture --test-threads=1
 ```
 
-Run diag binaries:
-```
-cargo test --release  --test diag_suites -- --nocapture --test-threads=1
-```
-
 Run the largest test suite with failed instruction report (very slow):
 ```
 cargo test --release -- compare_on_8080exm_print_failed_instruction --ignored
