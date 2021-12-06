@@ -22,7 +22,8 @@ pub struct BytePair {
     pub high: u8,
 }
 
-// pub struct InjectedIOHandler<'a>(Box<dyn Fn(u8) + 'a>);
+#[derive(Clone)]
+pub struct IOHandler(Box<fn(State8080, u8) -> State8080>);
 
 #[derive(Default, Clone)]
 pub struct State8080 /*<'a>*/ {
@@ -38,8 +39,8 @@ pub struct State8080 /*<'a>*/ {
     pub cc: ConditionCodes,
     pub interrupt_enabled: bool,
     pub memory: Vec<u8>,
-    // input_handler: InjectedIOHandler<'a>,
-    // output_handler: InjectedIOHandler<'a>,
+    input_handler: IOHandler,
+    output_handler: IOHandler,
 }
 
 impl Default for ConditionCodes {
@@ -63,11 +64,11 @@ impl From<BytePair> for u16 {
     }
 }
 
-// impl Default for InjectedIOHandler<'_> {
-//     fn default() -> Self {
-//         InjectedIOHandler(Box::new(|_x| {}))
-//     }
-// }
+impl Default for IOHandler {
+    fn default() -> Self {
+        IOHandler(Box::new(|state, _x| { state }))
+    }
+}
 
 impl State8080 /*<'a>*/ {
     pub fn new() -> Self {
@@ -282,25 +283,19 @@ impl State8080 /*<'a>*/ {
         println!("{}", output_line);
     }
 
-    // pub fn setting_in_handler<H>(self, handler: H) -> Self
-    // where
-    //     H: Fn(u8) + 'a,
-    // {
-    //     let mut state = self;
-    //     state.input_handler = InjectedIOHandler(Box::new(handler));
+    pub fn setting_in_handler(self, handler: fn(State8080, u8) -> State8080) -> Self {
+        State8080 {
+            input_handler: IOHandler(Box::new(handler)),
+            ..self
+        }
+    }
 
-    //     state
-    // }
-
-    // pub fn setting_out_handler<H>(self, handler: H) -> Self
-    // where
-    //     H: Fn(u8) + 'a,
-    // {
-    //     let mut state = self;
-    //     state.output_handler = InjectedIOHandler(Box::new(handler));
-
-    //     state
-    // }
+    pub fn setting_out_handler(self, handler: fn(State8080, u8) -> State8080) -> Self {
+        State8080 {
+            output_handler: IOHandler(Box::new(handler)),
+            ..self
+        }
+    }
 
     pub fn generating_interrupt(self, int_num: u16) -> Self {
         let mut state = self;
@@ -2099,15 +2094,17 @@ impl State8080 /*<'a>*/ {
 
             // 0xD3
             Instruction::Out => {
-                let (new_state, _b) = self.reading_next_byte();
-                new_state
-                // (state.output_handler.0)(b);
+                let (new_state, b) = self.reading_next_byte();
+                let handler = new_state.output_handler.0.clone();
+
+                handler(new_state, b)
             }
             // 0xDB
             Instruction::In => {
-                let (new_state, _b) = self.reading_next_byte();
-                new_state
-                // (state.input_handler.0)(b);
+                let (new_state, b) = self.reading_next_byte();
+                let handler = new_state.input_handler.0.clone();
+
+                handler(new_state, b)
             }
 
             // 0xF3
