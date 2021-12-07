@@ -26,7 +26,7 @@ pub struct BytePair {
 pub struct IOHandler(Box<fn(State8080, u8) -> State8080>);
 
 #[derive(Default, Clone)]
-pub struct State8080 /*<'a>*/ {
+pub struct State8080 {
     pub a: u8,
     pub b: u8,
     pub c: u8,
@@ -41,6 +41,7 @@ pub struct State8080 /*<'a>*/ {
     pub memory: Vec<u8>,
     input_handler: IOHandler,
     output_handler: IOHandler,
+    last_cycles: u8,
 }
 
 impl Default for ConditionCodes {
@@ -70,12 +71,16 @@ impl Default for IOHandler {
     }
 }
 
-impl State8080 /*<'a>*/ {
+impl State8080 {
     pub fn new() -> Self {
         State8080 {
             memory: vec![0; 0x10000],
             ..Default::default()
         }
+    }
+
+    pub fn last_cycles(&self) -> u8 {
+        self.last_cycles
     }
 
     pub fn loading_buffer_into_memory_at(self, buffer: Vec<u8>, index: u16) -> Self {
@@ -469,7 +474,7 @@ impl State8080 /*<'a>*/ {
         self.log_instruction(instruction.clone());
 
         // let state;
-        match instruction {
+        let new_state = match instruction {
             // 0x00
             Instruction::Nop
             | Instruction::Nop1 // 0x08
@@ -2116,6 +2121,11 @@ impl State8080 /*<'a>*/ {
                 println!("HLT called!");
                 std::process::exit(0);
             }
+        };
+
+        Self {
+            last_cycles: instruction.cycles(),
+            ..new_state
         }
     }
 

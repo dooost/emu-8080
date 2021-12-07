@@ -337,7 +337,7 @@ impl Instruction {
         }
     }
 
-    pub fn cycles(&self) -> u32 {
+    pub fn cycles(&self) -> u8 {
         match self {
             Instruction::MovBB
             | Instruction::MovBC
