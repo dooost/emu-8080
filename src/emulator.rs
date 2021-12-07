@@ -66,7 +66,7 @@ impl From<BytePair> for u16 {
 
 impl Default for IOHandler {
     fn default() -> Self {
-        IOHandler(Box::new(|state, _x| { state }))
+        IOHandler(Box::new(|state, _x| state))
     }
 }
 
@@ -153,16 +153,13 @@ impl State8080 /*<'a>*/ {
         let low = self.memory[low_index as usize];
         let high = self.memory[high_index as usize];
 
-        BytePair {
-            high,
-            low,
-        }
+        BytePair { high, low }
     }
 
     fn setting_memory_at_sp(self, pair: BytePair) -> Self {
         let low_index = self.sp;
         let high_index = self.sp.wrapping_add(1);
-        
+
         self.setting_memory_at(pair.low, low_index)
             .setting_memory_at(pair.high, high_index)
     }
@@ -189,7 +186,7 @@ impl State8080 /*<'a>*/ {
     fn setting_flag(self, flag: ConditionCodes, value: bool) -> Self {
         let mut state = self;
         state.cc.set(flag, value);
-        
+
         state
     }
 
@@ -231,8 +228,7 @@ impl State8080 /*<'a>*/ {
             .setting_p_flag(value)
     }
     fn setting_zspac_flags(self, value: u8, ac_check: u8) -> Self {
-        self.setting_zsp_flags(value)
-            .setting_ac_flag(ac_check)
+        self.setting_zsp_flags(value).setting_ac_flag(ac_check)
     }
 
     fn clearing_ac(self) -> Self {
@@ -367,8 +363,6 @@ impl State8080 /*<'a>*/ {
         Self { pc, ..self }
     }
 
-
-
     fn jumping(self, condition: bool) -> Self {
         let (new_state, pair) = self.reading_next_pair();
         let addr = pair.into();
@@ -392,7 +386,8 @@ impl State8080 /*<'a>*/ {
             let high_mem_addr = new_state.sp.wrapping_sub(1);
             let low_mem_addr = new_state.sp.wrapping_sub(2);
 
-            new_state.setting_pc(addr)
+            new_state
+                .setting_pc(addr)
                 .setting_sp(low_mem_addr)
                 .setting_memory_at(return_pair.high, high_mem_addr)
                 .setting_memory_at(return_pair.low, low_mem_addr)
@@ -406,7 +401,7 @@ impl State8080 /*<'a>*/ {
         let high = self.memory[self.sp.wrapping_add(1) as usize];
         let popped = BytePair { low, high };
         let sp = self.sp.wrapping_add(2);
-        
+
         (self.setting_sp(sp), popped)
     }
 
@@ -425,8 +420,7 @@ impl State8080 /*<'a>*/ {
         let ac_check = (self.a & 0x0f) + (rhs & 0x0f) + cy as u8;
         let res = res_precise as u8;
 
-        self.setting_a(res)
-            .setting_all_flags(res_precise, ac_check)
+        self.setting_a(res).setting_all_flags(res_precise, ac_check)
     }
 
     fn subtracting(self, rhs: u8, cy: bool) -> Self {
@@ -467,8 +461,7 @@ impl State8080 /*<'a>*/ {
     fn cmp(self, rhs: u8) -> Self {
         let a = self.a;
 
-        self.subtracting(rhs, false)
-            .setting_a(a)
+        self.subtracting(rhs, false).setting_a(a)
     }
 
     fn evaluating_instruction(self, instruction: Instruction) -> Self {
@@ -493,300 +486,300 @@ impl State8080 /*<'a>*/ {
             // 0x40
             Instruction::MovBB => {
                 let val = self.b;
-                
+
                 self.setting_b(val)
             }
             // 0x41
             Instruction::MovBC => {
                 let val = self.c;
-                
+
                 self.setting_b(val)
             }
             // 0x42
             Instruction::MovBD => {
                 let val = self.d;
-                
+
                 self.setting_b(val)
             }
             // 0x43
             Instruction::MovBE => {
                 let val = self.e;
-                
+
                 self.setting_b(val)
             }
             // 0x44
             Instruction::MovBH => {
                 let val = self.h;
-                
+
                 self.setting_b(val)
             }
             // 0x45
             Instruction::MovBL => {
                 let val = self.l;
-                
+
                 self.setting_b(val)
             }
             // 0x46
             Instruction::MovBM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_b(val)
             }
             // 0x47
             Instruction::MovBA => {
                 let val = self.a;
-                
+
                 self.setting_b(val)
             }
 
             // 0x48
             Instruction::MovCB => {
                 let val = self.b;
-                
+
                 self.setting_c(val)
             }
             // 0x49
             Instruction::MovCC => {
                 let val = self.c;
-                
+
                 self.setting_c(val)
             }
             // 0x4A
             Instruction::MovCD => {
                 let val = self.d;
-                
+
                 self.setting_c(val)
             }
             // 0x4B
             Instruction::MovCE => {
                 let val = self.e;
-                
+
                 self.setting_c(val)
             }
             // 0x4C
             Instruction::MovCH => {
                 let val = self.h;
-                
+
                 self.setting_c(val)
             }
             // 0x4D
             Instruction::MovCL => {
                 let val = self.l;
-                
+
                 self.setting_c(val)
             }
             // 0x4E
             Instruction::MovCM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_c(val)
             }
             // 0x4F
             Instruction::MovCA => {
                 let val = self.a;
-                
+
                 self.setting_c(val)
             }
 
             // 0x50
             Instruction::MovDB => {
                 let val = self.b;
-                
+
                 self.setting_d(val)
             }
             // 0x51
             Instruction::MovDC => {
                 let val = self.c;
-                
+
                 self.setting_d(val)
             }
             // 0x52
             Instruction::MovDD => {
                 let val = self.d;
-                
+
                 self.setting_d(val)
             }
             // 0x53
             Instruction::MovDE => {
                 let val = self.e;
-                
+
                 self.setting_d(val)
             }
             // 0x54
             Instruction::MovDH => {
                 let val = self.h;
-                
+
                 self.setting_d(val)
             }
             // 0x55
             Instruction::MovDL => {
                 let val = self.l;
-                
+
                 self.setting_d(val)
             }
             // 0x56
             Instruction::MovDM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_d(val)
             }
             // 0x57
             Instruction::MovDA => {
                 let val = self.a;
-                
+
                 self.setting_d(val)
             }
 
             // 0x58
             Instruction::MovEB => {
                 let val = self.b;
-                
+
                 self.setting_e(val)
             }
             // 0x59
             Instruction::MovEC => {
                 let val = self.c;
-                
+
                 self.setting_e(val)
             }
             // 0x5A
             Instruction::MovED => {
                 let val = self.d;
-                
+
                 self.setting_e(val)
             }
             // 0x5B
             Instruction::MovEE => {
                 let val = self.e;
-                
+
                 self.setting_e(val)
             }
             // 0x5C
             Instruction::MovEH => {
                 let val = self.h;
-                
+
                 self.setting_e(val)
             }
             // 0x5D
             Instruction::MovEL => {
                 let val = self.l;
-                
+
                 self.setting_e(val)
             }
             // 0x5E
             Instruction::MovEM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_e(val)
             }
             // 0x5F
             Instruction::MovEA => {
                 let val = self.a;
-                
+
                 self.setting_e(val)
             }
 
             // 0x60
             Instruction::MovHB => {
                 let val = self.b;
-                
+
                 self.setting_h(val)
             }
             // 0x61
             Instruction::MovHC => {
                 let val = self.c;
-                
+
                 self.setting_h(val)
             }
             // 0x62
             Instruction::MovHD => {
                 let val = self.d;
-                
+
                 self.setting_h(val)
             }
             // 0x63
             Instruction::MovHE => {
                 let val = self.e;
-                
+
                 self.setting_h(val)
             }
             // 0x64
             Instruction::MovHH => {
                 let val = self.h;
-                
+
                 self.setting_h(val)
             }
             // 0x65
             Instruction::MovHL => {
                 let val = self.l;
-                
+
                 self.setting_h(val)
             }
             // 0x66
             Instruction::MovHM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_h(val)
             }
             // 0x67
             Instruction::MovHA => {
                 let val = self.a;
-                
+
                 self.setting_h(val)
             }
 
             // 0x68
             Instruction::MovLB => {
                 let val = self.b;
-                
+
                 self.setting_l(val)
             }
             // 0x69
             Instruction::MovLC => {
                 let val = self.c;
-                
+
                 self.setting_l(val)
             }
             // 0x6A
             Instruction::MovLD => {
                 let val = self.d;
-                
+
                 self.setting_l(val)
             }
             // 0x6B
             Instruction::MovLE => {
                 let val = self.e;
-                
+
                 self.setting_l(val)
             }
             // 0x6C
             Instruction::MovLH => {
                 let val = self.h;
-                
+
                 self.setting_l(val)
             }
             // 0x6D
             Instruction::MovLL => {
                 let val = self.l;
-                
+
                 self.setting_l(val)
             }
             // 0x6E
             Instruction::MovLM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_l(val)
             }
             // 0x6F
             Instruction::MovLA => {
                 let val = self.a;
-                
+
                 self.setting_l(val)
             }
 
@@ -836,50 +829,50 @@ impl State8080 /*<'a>*/ {
             // 0x78
             Instruction::MovAB => {
                 let val = self.b;
-                
+
                 self.setting_a(val)
             }
             // 0x79
             Instruction::MovAC => {
                 let val = self.c;
-                
+
                 self.setting_a(val)
             }
             // 0x7A
             Instruction::MovAD => {
                 let val = self.d;
-                
+
                 self.setting_a(val)
             }
             // 0x7B
             Instruction::MovAE => {
                 let val = self.e;
-                
+
                 self.setting_a(val)
             }
             // 0x7C
             Instruction::MovAH => {
                 let val = self.h;
-                
+
                 self.setting_a(val)
             }
             // 0x7D
             Instruction::MovAL => {
                 let val = self.l;
-                
+
                 self.setting_a(val)
             }
             // 0x7E
             Instruction::MovAM => {
                 let offset: u16 = self.hl().into();
                 let val = self.memory[offset as usize];
-                
+
                 self.setting_a(val)
             }
             // 0x7F
             Instruction::MovAA => {
                 let val = self.a;
-                
+
                 self.setting_a(val)
             }
 
@@ -932,7 +925,7 @@ impl State8080 /*<'a>*/ {
 
                 new_state.setting_a(byte)
             }
-            
+
             // 0x01
             Instruction::LxiB => {
                 let (new_state, byte_pair) = self.reading_next_pair();
@@ -969,15 +962,15 @@ impl State8080 /*<'a>*/ {
             Instruction::StaxD => {
                 let offset: u16 = self.de().into();
                 let val = self.a;
-                
+
                 self.setting_memory_at(val, offset)
             }
-            
+
             // 0x0A
             Instruction::LdaxB => {
                 let offset: u16 = self.bc().into();
                 let res = self.memory[offset as usize];
-                
+
                 self.setting_a(res)
             }
             // 0x1A
@@ -1409,9 +1402,9 @@ impl State8080 /*<'a>*/ {
                     b = Some(self.b.wrapping_add(1));
                 }
 
-                let pair = BytePair { 
-                    high: b.unwrap_or(self.b), 
-                    low: c 
+                let pair = BytePair {
+                    high: b.unwrap_or(self.b),
+                    low: c
                 };
 
                 self.setting_bc(pair)
@@ -1424,9 +1417,9 @@ impl State8080 /*<'a>*/ {
                     d = Some(self.d.wrapping_add(1));
                 }
 
-                let pair = BytePair { 
-                    high: d.unwrap_or(self.d), 
-                    low: e 
+                let pair = BytePair {
+                    high: d.unwrap_or(self.d),
+                    low: e
                 };
 
                 self.setting_de(pair)
@@ -1439,9 +1432,9 @@ impl State8080 /*<'a>*/ {
                     h = Some(self.h.wrapping_add(1));
                 }
 
-                let pair = BytePair { 
-                    high: h.unwrap_or(self.h), 
-                    low: l 
+                let pair = BytePair {
+                    high: h.unwrap_or(self.h),
+                    low: l
                 };
 
                 self.setting_hl(pair)
@@ -1449,7 +1442,7 @@ impl State8080 /*<'a>*/ {
             // 0x33
             Instruction::InxSp => {
                 let sp = self.sp.wrapping_add(1);
-                
+
                 self.setting_sp(sp)
             }
 
@@ -1461,9 +1454,9 @@ impl State8080 /*<'a>*/ {
                     b = Some(self.b.wrapping_sub(1));
                 }
 
-                let pair = BytePair { 
-                    high: b.unwrap_or(self.b), 
-                    low: c 
+                let pair = BytePair {
+                    high: b.unwrap_or(self.b),
+                    low: c
                 };
 
                 self.setting_bc(pair)
@@ -1476,8 +1469,8 @@ impl State8080 /*<'a>*/ {
                     d = Some(self.d.wrapping_sub(1));
                 }
 
-                let pair = BytePair { 
-                    high: d.unwrap_or(self.d), 
+                let pair = BytePair {
+                    high: d.unwrap_or(self.d),
                     low: e
                 };
 
@@ -1491,8 +1484,8 @@ impl State8080 /*<'a>*/ {
                     h = Some(self.h.wrapping_sub(1));
                 }
 
-                let pair = BytePair { 
-                    high: h.unwrap_or(self.h), 
+                let pair = BytePair {
+                    high: h.unwrap_or(self.h),
                     low: l
                 };
 
@@ -1501,7 +1494,7 @@ impl State8080 /*<'a>*/ {
             // 0x3B
             Instruction::DcxSp => {
                 let sp = self.sp.wrapping_sub(1);
-                
+
                 self.setting_sp(sp)
             }
 
@@ -1557,7 +1550,7 @@ impl State8080 /*<'a>*/ {
                     correction += 0x60;
                     cy = true;
                 }
-                
+
                 // Not entirely sure about how flags should be set here
                 self.adding(correction, false)
                     .setting_flag(ConditionCodes::CY, cy)
@@ -1619,7 +1612,7 @@ impl State8080 /*<'a>*/ {
             // 0xE6
             Instruction::Ani => {
                 let (new_state, byte) = self.reading_next_byte();
-                
+
                 new_state.ana(byte)
             }
 
@@ -1825,14 +1818,14 @@ impl State8080 /*<'a>*/ {
                 self.setting_a(a)
                     .setting_flag(ConditionCodes::CY, (x & 1) == 1)
             }
-            
+
             // 0x2F
             Instruction::Cma => {
                 let complement = !self.a;
 
                 self.setting_a(complement)
             }
-            
+
             // 0x3F
             Instruction::Cmc => {
                 let complement = !self.cc.contains(ConditionCodes::CY);
@@ -1851,49 +1844,49 @@ impl State8080 /*<'a>*/ {
             // 0xC2
             Instruction::Jnz => {
                 let condition = !self.cc.contains(ConditionCodes::Z);
-                
+
                 self.jumping(condition)
             }
             // 0xCA
             Instruction::Jz => {
                 let condition = self.cc.contains(ConditionCodes::Z);
-                
+
                 self.jumping(condition)
             }
             // 0xD2
             Instruction::Jnc => {
                 let condition = !self.cc.contains(ConditionCodes::CY);
-                
+
                 self.jumping(condition)
             }
             // 0xDA
             Instruction::Jc => {
                 let condition = self.cc.contains(ConditionCodes::CY);
-                
+
                 self.jumping(condition)
             }
             // 0xE2
             Instruction::Jpo => {
                 let condition = !self.cc.contains(ConditionCodes::P);
-                
+
                 self.jumping(condition)
             }
             // 0xEA
             Instruction::Jpe => {
                 let condition = self.cc.contains(ConditionCodes::P);
-                
+
                 self.jumping(condition)
             }
             // 0xF2
             Instruction::Jp => {
                 let condition = !self.cc.contains(ConditionCodes::S);
-                
+
                 self.jumping(condition)
             }
             // 0xFA
             Instruction::Jm => {
                 let condition = self.cc.contains(ConditionCodes::S);
-                
+
                 self.jumping(condition)
             }
 
@@ -1916,49 +1909,49 @@ impl State8080 /*<'a>*/ {
             // 0xC4
             Instruction::Cnz =>  {
                 let condition = !self.cc.contains(ConditionCodes::Z);
-                
+
                 self.calling(condition)
             }
             // 0xCC
             Instruction::Cz => {
                 let condition = self.cc.contains(ConditionCodes::Z);
-                
+
                 self.calling(condition)
             }
             // 0xD4
             Instruction::Cnc => {
                 let condition = !self.cc.contains(ConditionCodes::CY);
-                
+
                 self.calling(condition)
             }
             // 0xDC
             Instruction::Cc => {
                 let condition = self.cc.contains(ConditionCodes::CY);
-                
+
                 self.calling(condition)
             }
             // 0xE4
             Instruction::Cpo => {
                 let condition = !self.cc.contains(ConditionCodes::P);
-                
+
                 self.calling(condition)
             }
             // 0xEC
             Instruction::Cpe => {
                 let condition = self.cc.contains(ConditionCodes::P);
-                
+
                 self.calling(condition)
             }
             // 0xF4
             Instruction::Cp => {
                 let condition = !self.cc.contains(ConditionCodes::S);
-                
+
                 self.calling(condition)
             }
             // 0xFC
             Instruction::Cm => {
                 let condition = self.cc.contains(ConditionCodes::S);
-                
+
                 self.calling(condition)
             }
 
@@ -1967,49 +1960,49 @@ impl State8080 /*<'a>*/ {
 
             Instruction::Rnz => {
                 let condition = !self.cc.contains(ConditionCodes::Z);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rz => {
                 let condition = self.cc.contains(ConditionCodes::Z);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rnc => {
                 let condition = !self.cc.contains(ConditionCodes::CY);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rc => {
                 let condition = self.cc.contains(ConditionCodes::CY);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rpo => {
                 let condition = !self.cc.contains(ConditionCodes::P);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rpe => {
                 let condition = self.cc.contains(ConditionCodes::P);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rp => {
                 let condition = !self.cc.contains(ConditionCodes::S);
-                
+
                 self.returning(condition)
             }
 
             Instruction::Rm => {
                 let condition = self.cc.contains(ConditionCodes::S);
-                
+
                 self.returning(condition)
             }
 
