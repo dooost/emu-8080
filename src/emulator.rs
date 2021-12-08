@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::path::Path;
+use std::rc::Rc;
 
 use bitflags::bitflags;
 
@@ -23,7 +24,7 @@ pub struct BytePair {
 }
 
 #[derive(Clone)]
-pub struct IOHandler(Box<fn(State8080, u8) -> State8080>);
+pub struct IOHandler(Rc<fn(State8080, u8) -> State8080>);
 
 #[derive(Default, Clone)]
 pub struct State8080 {
@@ -67,7 +68,7 @@ impl From<BytePair> for u16 {
 
 impl Default for IOHandler {
     fn default() -> Self {
-        IOHandler(Box::new(|state, _x| state))
+        IOHandler(Rc::new(|state, _x| state))
     }
 }
 
@@ -286,14 +287,14 @@ impl State8080 {
 
     pub fn setting_in_handler(self, handler: fn(State8080, u8) -> State8080) -> Self {
         State8080 {
-            input_handler: IOHandler(Box::new(handler)),
+            input_handler: IOHandler(Rc::new(handler)),
             ..self
         }
     }
 
     pub fn setting_out_handler(self, handler: fn(State8080, u8) -> State8080) -> Self {
         State8080 {
-            output_handler: IOHandler(Box::new(handler)),
+            output_handler: IOHandler(Rc::new(handler)),
             ..self
         }
     }
@@ -2093,14 +2094,14 @@ impl State8080 {
             // 0xD3
             Instruction::Out => {
                 let (new_state, b) = self.reading_next_byte();
-                let handler = new_state.output_handler.0.clone();
+                let handler = Rc::clone(&new_state.output_handler.0);
 
                 handler(new_state, b)
             }
             // 0xDB
             Instruction::In => {
                 let (new_state, b) = self.reading_next_byte();
-                let handler = new_state.input_handler.0.clone();
+                let handler = Rc::clone(&new_state.input_handler.0);
 
                 handler(new_state, b)
             }
