@@ -299,6 +299,7 @@ impl State8080 {
         }
     }
 
+    // TODO: Make this more pure-functional
     pub fn generating_interrupt(self, int_num: u16) -> Self {
         let mut state = self;
         let pc_pair: BytePair = state.pc.into();
