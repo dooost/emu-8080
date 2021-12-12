@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use emu_8080::emulator::State8080;
+use emu_8080::emulator::{DummyIOHandler, State8080};
 
 #[allow(dead_code)]
 pub fn run_suite(path: impl AsRef<Path>) {
@@ -14,7 +14,7 @@ pub fn run_suite(path: impl AsRef<Path>) {
     println!("Starting running suite {}...", filename);
 
     loop {
-        state = state.evaluating_next();
+        state = state.evaluating_next::<DummyIOHandler>(None);
 
         print_output(&state);
 

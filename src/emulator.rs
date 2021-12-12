@@ -1,10 +1,26 @@
 use std::convert::TryFrom;
 use std::path::Path;
-use std::rc::Rc;
 
 use bitflags::bitflags;
 
 use crate::disassembler::Instruction;
+
+pub trait IOHandler {
+    fn inp(&mut self, state: State8080, v: u8) -> State8080;
+    fn out(&mut self, state: State8080, v: u8) -> State8080;
+}
+
+pub struct DummyIOHandler;
+
+impl IOHandler for DummyIOHandler {
+    fn inp(&mut self, state: State8080, _v: u8) -> State8080 {
+        state
+    }
+
+    fn out(&mut self, state: State8080, _v: u8) -> State8080 {
+        state
+    }
+}
 
 bitflags! {
     #[repr(C)]
@@ -18,37 +34,15 @@ bitflags! {
     }
 }
 
-pub struct BytePair {
-    pub low: u8,
-    pub high: u8,
-}
-
-#[derive(Clone)]
-pub struct IOHandler(Rc<dyn Fn(State8080, u8) -> State8080>);
-
-#[derive(Default, Clone)]
-pub struct State8080 {
-    pub a: u8,
-    pub b: u8,
-    pub c: u8,
-    pub d: u8,
-    pub e: u8,
-    pub h: u8,
-    pub l: u8,
-    pub sp: u16,
-    pub pc: u16,
-    pub cc: ConditionCodes,
-    pub interrupt_enabled: bool,
-    pub memory: Vec<u8>,
-    input_handler: IOHandler,
-    output_handler: IOHandler,
-    last_cycles: u8,
-}
-
 impl Default for ConditionCodes {
     fn default() -> Self {
         ConditionCodes::PAD
     }
+}
+
+pub struct BytePair {
+    pub low: u8,
+    pub high: u8,
 }
 
 impl From<u16> for BytePair {
@@ -65,11 +59,23 @@ impl From<BytePair> for u16 {
         ((pair.high as u16) << 8) | pair.low as u16
     }
 }
-
-impl Default for IOHandler {
-    fn default() -> Self {
-        IOHandler(Rc::new(|state, _x| state))
-    }
+#[derive(Default, Clone)]
+pub struct State8080 {
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub h: u8,
+    pub l: u8,
+    pub sp: u16,
+    pub pc: u16,
+    pub cc: ConditionCodes,
+    pub interrupt_enabled: bool,
+    pub memory: Vec<u8>,
+    // input_handler: IOHandler,
+    // output_handler: IOHandler,
+    last_cycles: u8,
 }
 
 impl State8080 {
@@ -285,20 +291,6 @@ impl State8080 {
         println!("{}", output_line);
     }
 
-    pub fn setting_in_handler(self, handler: Box<dyn Fn(State8080, u8) -> State8080>) -> Self {
-        State8080 {
-            input_handler: IOHandler(Rc::new(handler)),
-            ..self
-        }
-    }
-
-    pub fn setting_out_handler(self, handler: Box<dyn Fn(State8080, u8) -> State8080>) -> Self {
-        State8080 {
-            output_handler: IOHandler(Rc::new(handler)),
-            ..self
-        }
-    }
-
     // TODO: Make this more pure-functional
     pub fn generating_interrupt(self, int_num: u16) -> Self {
         let mut state = self;
@@ -471,7 +463,11 @@ impl State8080 {
         self.subtracting(rhs, false).setting_a(a)
     }
 
-    fn evaluating_instruction(self, instruction: Instruction) -> Self {
+    fn evaluating_instruction<I: IOHandler>(
+        self,
+        instruction: Instruction,
+        io_handler: Option<&mut I>,
+    ) -> Self {
         #[cfg(feature = "logging")]
         self.log_instruction(instruction.clone());
 
@@ -2095,16 +2091,20 @@ impl State8080 {
             // 0xD3
             Instruction::Out => {
                 let (new_state, b) = self.reading_next_byte();
-                let handler = Rc::clone(&new_state.output_handler.0);
 
-                handler(new_state, b)
+                match io_handler {
+                    Some(handler) => handler.out(new_state, b),
+                    None => new_state,
+                }
             }
             // 0xDB
             Instruction::In => {
                 let (new_state, b) = self.reading_next_byte();
-                let handler = Rc::clone(&new_state.input_handler.0);
 
-                handler(new_state, b)
+                match io_handler {
+                    Some(handler) => handler.inp(new_state, b),
+                    None => new_state,
+                }
             }
 
             // 0xF3
@@ -2131,11 +2131,11 @@ impl State8080 {
         }
     }
 
-    pub fn evaluating_next(self) -> Self {
+    pub fn evaluating_next<I: IOHandler>(self, io_handler: Option<&mut I>) -> Self {
         let (mut state, op_code) = self.reading_next_byte();
 
         match Instruction::try_from(op_code) {
-            Ok(instruction) => state = state.evaluating_instruction(instruction),
+            Ok(instruction) => state = state.evaluating_instruction(instruction, io_handler),
             Err(_) => println!("Not an instruction: {:#04x}", op_code),
         }
 

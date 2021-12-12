@@ -2,7 +2,7 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr::null_mut;
 
-use crate::emulator::State8080;
+use crate::emulator::{DummyIOHandler, State8080};
 
 fn create_raw_pointer(state: State8080) -> *mut State8080 {
     Box::into_raw(Box::new(state))
@@ -27,7 +27,7 @@ pub extern "C" fn state8080_free(ptr: *mut State8080) {
 pub extern "C" fn state8080_evaluating_next(ptr: *mut State8080) -> *mut State8080 {
     let state = unsafe { Box::from_raw(ptr) };
 
-    create_raw_pointer(state.evaluating_next())
+    create_raw_pointer(state.evaluating_next::<DummyIOHandler>(None))
 }
 
 #[no_mangle]

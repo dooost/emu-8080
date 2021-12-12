@@ -6,7 +6,7 @@ use std::io::Read;
 use std::path::Path;
 use std::rc::Rc;
 
-use emu_8080::emulator::State8080;
+use emu_8080::emulator::{DummyIOHandler, State8080};
 use i8080::{Cpu, Linear, Memory};
 use utils::{create_state_with_rom, print_output};
 
@@ -75,7 +75,7 @@ fn run_comparison(path: impl AsRef<Path>, keep_old_state: bool) {
             compare_states(&state, &cpu, None);
         }
 
-        state = state.evaluating_next();
+        state = state.evaluating_next::<DummyIOHandler>(None);
         cpu.next();
 
         print_output(&state);

@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use emu_8080::emulator::State8080;
+use emu_8080::emulator::{DummyIOHandler, State8080};
 
 fn main() {
     let state = State8080::new()
@@ -71,7 +71,7 @@ fn run(state: State8080) {
         let mut cycles_ran = 0;
 
         while cycles_left > cycles_ran {
-            state = state.evaluating_next();
+            state = state.evaluating_next::<DummyIOHandler>(None);
             cycles_ran += state.last_cycles() as u128;
         }
 
