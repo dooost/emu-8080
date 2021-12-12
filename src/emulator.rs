@@ -24,7 +24,7 @@ pub struct BytePair {
 }
 
 #[derive(Clone)]
-pub struct IOHandler(Rc<fn(State8080, u8) -> State8080>);
+pub struct IOHandler(Rc<dyn Fn(State8080, u8) -> State8080>);
 
 #[derive(Default, Clone)]
 pub struct State8080 {
@@ -285,14 +285,14 @@ impl State8080 {
         println!("{}", output_line);
     }
 
-    pub fn setting_in_handler(self, handler: fn(State8080, u8) -> State8080) -> Self {
+    pub fn setting_in_handler(self, handler: Box<dyn Fn(State8080, u8) -> State8080>) -> Self {
         State8080 {
             input_handler: IOHandler(Rc::new(handler)),
             ..self
         }
     }
 
-    pub fn setting_out_handler(self, handler: fn(State8080, u8) -> State8080) -> Self {
+    pub fn setting_out_handler(self, handler: Box<dyn Fn(State8080, u8) -> State8080>) -> Self {
         State8080 {
             output_handler: IOHandler(Rc::new(handler)),
             ..self
@@ -334,7 +334,7 @@ impl State8080 {
         }
     }
 
-    fn setting_a(self, a: u8) -> Self {
+    pub fn setting_a(self, a: u8) -> Self {
         Self { a, ..self }
     }
 
