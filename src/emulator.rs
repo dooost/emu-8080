@@ -73,8 +73,6 @@ pub struct State8080 {
     pub cc: ConditionCodes,
     pub interrupt_enabled: bool,
     pub memory: Vec<u8>,
-    // input_handler: IOHandler,
-    // output_handler: IOHandler,
     last_cycles: u8,
 }
 
@@ -461,6 +459,12 @@ impl State8080 {
         let a = self.a;
 
         self.subtracting(rhs, false).setting_a(a)
+    }
+
+    fn rst(self, i: u16) -> Self {
+        let pair = BytePair::from(self.pc);
+
+        self.pushing(pair.high, pair.low).setting_pc(i * 8)
     }
 
     fn evaluating_instruction<I: IOHandler>(
@@ -2015,14 +2019,14 @@ impl State8080 {
                 self.setting_pc(res)
             }
 
-            Instruction::Rst0 => self,
-            Instruction::Rst1 => self,
-            Instruction::Rst2 => self,
-            Instruction::Rst3 => self,
-            Instruction::Rst4 => self,
-            Instruction::Rst5 => self,
-            Instruction::Rst6 => self,
-            Instruction::Rst7 => self,
+            Instruction::Rst0 => self.rst(0),
+            Instruction::Rst1 => self.rst(1),
+            Instruction::Rst2 => self.rst(2),
+            Instruction::Rst3 => self.rst(3),
+            Instruction::Rst4 => self.rst(4),
+            Instruction::Rst5 => self.rst(5),
+            Instruction::Rst6 => self.rst(6),
+            Instruction::Rst7 => self.rst(7),
 
             // Stack Group
 
