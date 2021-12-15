@@ -6,8 +6,8 @@ use bitflags::bitflags;
 use crate::disassembler::Instruction;
 
 pub trait IOHandler {
-    fn inp(&mut self, state: State8080, v: u8) -> State8080;
-    fn out(&mut self, state: State8080, v: u8) -> State8080;
+    fn inp(&mut self, state: State8080, port: u8) -> State8080;
+    fn out(&mut self, state: State8080, port: u8) -> State8080;
 }
 
 pub struct DummyIOHandler;
